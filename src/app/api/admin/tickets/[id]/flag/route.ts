@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminSession, canAccessCategory, ROLE_PERMISSIONS } from '@/lib/admin-auth'
+import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
-import { ROLE_LABELS } from '@/lib/permissions'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-// Cargos disponíveis para sinalização
-const AVAILABLE_ROLES = ['SUPORTE', 'MODERADOR', 'COORDENADOR', 'COMMUNITY_MANAGER', 'DEV', 'CEO']
-
-// Sinalizar ticket para um cargo
+// Sinalizar ticket para um atendente específico
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getAdminSession()
@@ -21,14 +17,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json()
-    const { role, message } = body
+    const { staffId, message } = body
 
-    if (!role) {
-      return NextResponse.json({ error: 'Cargo é obrigatório' }, { status: 400 })
-    }
-
-    if (!AVAILABLE_ROLES.includes(role)) {
-      return NextResponse.json({ error: 'Cargo inválido' }, { status: 400 })
+    if (!staffId) {
+      return NextResponse.json({ error: 'Atendente é obrigatório' }, { status: 400 })
     }
 
     // Verificar se o ticket existe
@@ -45,12 +37,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
+    // Buscar ou criar o staff no banco (pode não existir ainda se nunca logou)
+    let targetStaff = await prisma.staff.findFirst({
+      where: { username: staffId }, // staffId é o Discord ID
+    })
+
+    if (!targetStaff) {
+      return NextResponse.json({ error: 'Atendente não encontrado no sistema' }, { status: 404 })
+    }
+
+    // Verificar se o atendente tem acesso à categoria
+    if (!canAccessCategory(targetStaff.role, ticket.category)) {
+      return NextResponse.json({ error: 'Atendente não tem acesso a esta categoria' }, { status: 400 })
+    }
+
     // Criar ou atualizar sinalização (upsert para evitar duplicatas)
     const flag = await prisma.ticketFlag.upsert({
       where: {
-        ticketId_flaggedToRole: {
+        ticketId_flaggedToId: {
           ticketId: id,
-          flaggedToRole: role,
+          flaggedToId: targetStaff.id,
         },
       },
       update: {
@@ -63,22 +69,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       create: {
         ticketId: id,
         flaggedById: session.staffId,
-        flaggedToRole: role,
+        flaggedToId: targetStaff.id,
         message: message || null,
       },
       include: {
         flaggedBy: {
           select: { name: true, role: true },
         },
+        flaggedTo: {
+          select: { name: true, role: true, avatar: true },
+        },
       },
     })
 
     // Adicionar mensagem de sistema no ticket
-    const roleName = ROLE_LABELS[role] || role
     await prisma.message.create({
       data: {
         ticketId: id,
-        content: `🚩 ${session.name} sinalizou este ticket para o cargo ${roleName}${message ? `: "${message}"` : ''}`,
+        content: `🚩 ${session.name} sinalizou este ticket para ${targetStaff.name}${message ? `: "${message}"` : ''}`,
         isSystemMessage: true,
       },
     })
@@ -107,9 +115,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         message: true,
         resolved: true,
         createdAt: true,
-        flaggedToRole: true,
         flaggedBy: {
-          select: { id: true, name: true, role: true },
+          select: { id: true, name: true, role: true, avatar: true },
+        },
+        flaggedTo: {
+          select: { id: true, name: true, role: true, avatar: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -132,11 +142,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    // Resolver a sinalização do cargo do usuário atual para este ticket
+    // Resolver a sinalização do atendente atual para este ticket
     const flag = await prisma.ticketFlag.updateMany({
       where: {
         ticketId: id,
-        flaggedToRole: session.role as any,
+        flaggedToId: session.staffId,
         resolved: false,
       },
       data: {

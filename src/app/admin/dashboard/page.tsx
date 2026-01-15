@@ -42,10 +42,16 @@ interface Ticket {
     id: string
     name: string
     role: string
+    avatar?: string
+  }
+  flaggedTo?: {
+    id: string
+    name: string
+    role: string
+    avatar?: string
   }
   flagMessage?: string
   flaggedAt?: string
-  flaggedToRole?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; class: string }> = {
