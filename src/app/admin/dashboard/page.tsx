@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getCategoryEmoji, CATEGORIES } from '@/lib/categories'
-import { ROLE_PERMISSIONS } from '@/lib/admin-auth'
+import { ROLE_PERMISSIONS, ROLE_LABELS } from '@/lib/permissions'
 
 interface Staff {
   staffId: string
@@ -44,13 +44,6 @@ const STATUS_LABELS: Record<string, { label: string; class: string }> = {
   FECHADO: { label: 'Fechado', class: 'badge-danger' },
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPORTE: 'Suporte',
-  MODERADOR: 'Moderador',
-  COORDENADOR: 'Coordenador',
-  COMMUNITY_MANAGER: 'Community Manager',
-  CEO: 'CEO',
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter()

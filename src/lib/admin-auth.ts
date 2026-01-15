@@ -3,6 +3,9 @@ import { cookies } from 'next/headers'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
+// Re-exportar permissões para manter compatibilidade com imports existentes nas API routes
+export { ROLE_PERMISSIONS, canAccessCategory } from './permissions'
+
 const secret = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET || 'default-secret-key')
 
 export interface AdminToken {
@@ -57,19 +60,4 @@ export async function getAdminSession(): Promise<AdminToken | null> {
   }
 
   return verifyAdminToken(token)
-}
-
-// Permissões por cargo
-export const ROLE_PERMISSIONS: Record<string, string[]> = {
-  SUPORTE: ['SUPORTE', 'BUGS', 'BOOST', 'CASAS'],
-  MODERADOR: ['SUPORTE', 'BUGS', 'BOOST', 'CASAS'],
-  COORDENADOR: ['SUPORTE', 'BUGS', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'],
-  COMMUNITY_MANAGER: ['SUPORTE', 'BUGS', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'],
-  CEO: ['SUPORTE', 'BUGS', 'DOACOES', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'],
-}
-
-export function canAccessCategory(role: string, category: string): boolean {
-  const permissions = ROLE_PERMISSIONS[role]
-  if (!permissions) return false
-  return permissions.includes(category)
 }
