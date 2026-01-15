@@ -60,6 +60,35 @@ interface Ticket {
   messages: Message[]
 }
 
+interface PendingImage {
+  file: File
+  preview: string
+}
+
+interface StaffMember {
+  id: string
+  username: string
+  name: string
+  role: string
+}
+
+interface TicketFlagInfo {
+  id: string
+  message?: string
+  resolved: boolean
+  createdAt: string
+  flaggedBy: {
+    id: string
+    name: string
+    role: string
+  }
+  flaggedTo: {
+    id: string
+    name: string
+    role: string
+  }
+}
+
 const STATUS_LABELS: Record<string, { label: string; class: string }> = {
   ABERTO: { label: 'Aberto', class: 'badge-info' },
   EM_ATENDIMENTO: { label: 'Em Atendimento', class: 'badge-warning' },
@@ -78,14 +107,25 @@ export default function AdminTicketPage() {
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [notifyUser, setNotifyUser] = useState(true)
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
   
   // Modais
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
+  const [showFlagModal, setShowFlagModal] = useState(false)
   const [closeReason, setCloseReason] = useState('')
   const [newSubject, setNewSubject] = useState('')
+  
+  // Sinalização
+  const [staffList, setStaffList] = useState<StaffMember[]>([])
+  const [selectedStaffId, setSelectedStaffId] = useState('')
+  const [flagMessage, setFlagMessage] = useState('')
+  const [ticketFlags, setTicketFlags] = useState<TicketFlagInfo[]>([])
+  const [flaggedForMe, setFlaggedForMe] = useState<TicketFlagInfo | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     checkAuth()
@@ -94,7 +134,12 @@ export default function AdminTicketPage() {
   useEffect(() => {
     if (staff && ticketId) {
       fetchTicket()
-      const interval = setInterval(fetchTicket, 10000)
+      fetchFlags()
+      fetchStaffList()
+      const interval = setInterval(() => {
+        fetchTicket()
+        fetchFlags()
+      }, 10000)
       return () => clearInterval(interval)
     }
   }, [staff, ticketId])
@@ -102,6 +147,51 @@ export default function AdminTicketPage() {
   useEffect(() => {
     scrollToBottom()
   }, [ticket?.messages])
+
+  // Listener para colar imagens
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile()
+          if (file) {
+            e.preventDefault()
+            addPendingImage(file)
+          }
+        }
+      }
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [])
+
+  const addPendingImage = (file: File) => {
+    const preview = URL.createObjectURL(file)
+    setPendingImages(prev => [...prev, { file, preview }])
+  }
+
+  const removePendingImage = (index: number) => {
+    setPendingImages(prev => {
+      URL.revokeObjectURL(prev[index].preview)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].type.startsWith('image/')) {
+        addPendingImage(files[i])
+      }
+    }
+    e.target.value = ''
+  }
 
   const checkAuth = async () => {
     try {
@@ -135,24 +225,141 @@ export default function AdminTicketPage() {
     }
   }
 
+  const fetchStaffList = async () => {
+    try {
+      const res = await fetch('/api/admin/staff')
+      if (res.ok) {
+        const data = await res.json()
+        setStaffList(data.staff || [])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar lista de atendentes:', error)
+    }
+  }
+
+  const fetchFlags = async () => {
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}/flag`)
+      if (res.ok) {
+        const data = await res.json()
+        setTicketFlags(data.flags || [])
+        // Verificar se este ticket foi sinalizado para o usuário atual
+        const flagForMe = data.flags?.find(
+          (f: TicketFlagInfo) => f.flaggedTo.id === staff?.staffId && !f.resolved
+        )
+        setFlaggedForMe(flagForMe || null)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar sinalizações:', error)
+    }
+  }
+
+  const handleFlagTicket = async () => {
+    if (!selectedStaffId) return
+    
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}/flag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          staffId: selectedStaffId, 
+          message: flagMessage || undefined 
+        }),
+      })
+
+      if (res.ok) {
+        setShowFlagModal(false)
+        setSelectedStaffId('')
+        setFlagMessage('')
+        fetchTicket()
+        fetchFlags()
+        alert('Ticket sinalizado com sucesso!')
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao sinalizar ticket')
+      }
+    } catch (error) {
+      console.error('Erro ao sinalizar ticket:', error)
+      alert('Erro ao sinalizar ticket')
+    }
+  }
+
+  const handleResolveFlag = async () => {
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}/flag`, {
+        method: 'PATCH',
+      })
+
+      if (res.ok) {
+        setFlaggedForMe(null)
+        fetchFlags()
+      }
+    } catch (error) {
+      console.error('Erro ao resolver sinalização:', error)
+    }
+  }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        return data.url
+      }
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error)
+    }
+    return null
+  }
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim() || sending || ticket?.status === 'FECHADO') return
+    if ((!message.trim() && pendingImages.length === 0) || sending || ticket?.status === 'FECHADO') return
 
     setSending(true)
     try {
+      // Upload das imagens primeiro
+      const uploadedUrls: string[] = []
+      for (const img of pendingImages) {
+        const url = await uploadImage(img.file)
+        if (url) uploadedUrls.push(url)
+      }
+
+      // Montar conteúdo da mensagem
+      let finalContent = message.trim()
+      if (uploadedUrls.length > 0) {
+        const imageMarkdown = uploadedUrls.map(url => `[imagem](${url})`).join('\n')
+        finalContent = finalContent ? `${finalContent}\n\n${imageMarkdown}` : imageMarkdown
+      }
+
       const res = await fetch(`/api/admin/tickets/${ticketId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: message, notifyUser }),
+        body: JSON.stringify({ 
+          content: finalContent, 
+          notifyUser,
+          attachments: uploadedUrls.map(url => ({
+            url,
+            filename: 'imagem.png',
+            mimeType: 'image/png',
+          }))
+        }),
       })
 
       if (res.ok) {
         setMessage('')
+        setPendingImages([])
         fetchTicket()
       }
     } catch (error) {
@@ -288,6 +495,12 @@ export default function AdminTicketPage() {
                 >
                   ✏️ Renomear
                 </button>
+                <button
+                  onClick={() => setShowFlagModal(true)}
+                  className="btn-secondary text-sm py-2"
+                >
+                  🚩 Sinalizar
+                </button>
                 <button onClick={handleNotifyUser} className="btn-secondary text-sm py-2">
                   🔔 Avisar
                 </button>
@@ -302,6 +515,35 @@ export default function AdminTicketPage() {
           </div>
         </div>
       </header>
+
+      {/* Banner de sinalização */}
+      {flaggedForMe && (
+        <div className="bg-red-500/10 border-b border-red-500/30">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🚩</span>
+                <div>
+                  <p className="font-medium text-red-400">
+                    Este ticket foi sinalizado para você por {flaggedForMe.flaggedBy.name}
+                  </p>
+                  {flaggedForMe.message && (
+                    <p className="text-sm text-gray-400">
+                      Mensagem: &ldquo;{flaggedForMe.message}&rdquo;
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleResolveFlag}
+                className="btn-secondary text-sm py-1.5 px-4"
+              >
+                ✓ Marcar como resolvido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
         {/* Chat */}
@@ -352,17 +594,15 @@ export default function AdminTicketPage() {
                       </div>
                       <p className="text-gray-200 whitespace-pre-wrap break-words">{msg.content}</p>
                       {msg.attachments.length > 0 && (
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {msg.attachments.map((att) => (
                             <div key={att.id}>
                               {att.mimeType.startsWith('image/') ? (
                                 <a href={att.url} target="_blank" rel="noopener noreferrer">
-                                  <Image
+                                  <img
                                     src={att.url}
                                     alt={att.filename}
-                                    width={300}
-                                    height={200}
-                                    className="rounded-lg max-w-full"
+                                    className="rounded-lg max-w-[300px] max-h-[200px] object-cover hover:opacity-90 transition-opacity"
                                   />
                                 </a>
                               ) : (
@@ -389,34 +629,82 @@ export default function AdminTicketPage() {
             {/* Input */}
             {ticket.status !== 'FECHADO' ? (
               <form onSubmit={handleSendMessage} className="border-t border-border pt-4">
+                {/* Preview de imagens pendentes */}
+                {pendingImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {pendingImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img.preview}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePendingImage(index)}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-3 mb-3">
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="textarea flex-1"
-                    rows={3}
-                    placeholder="Digite sua resposta..."
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSendMessage(e)
-                      }
-                    }}
-                  />
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={textareaRef}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      className="textarea w-full pr-12"
+                      rows={3}
+                      placeholder="Digite sua resposta... (Ctrl+V para colar imagens)"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSendMessage(e)
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute right-3 bottom-3 text-gray-400 hover:text-primary transition-colors"
+                      title="Anexar imagem"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={notifyUser}
-                      onChange={(e) => setNotifyUser(e.target.checked)}
-                      className="rounded border-border"
-                    />
-                    Notificar usuário via Discord
-                  </label>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={notifyUser}
+                        onChange={(e) => setNotifyUser(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      Notificar usuário via Discord
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      Ctrl+V para colar imagens
+                    </span>
+                  </div>
                   <button
                     type="submit"
-                    disabled={!message.trim() || sending}
+                    disabled={(!message.trim() && pendingImages.length === 0) || sending}
                     className="btn-primary px-8 disabled:opacity-50"
                   >
                     {sending ? 'Enviando...' : 'Enviar Resposta'}
@@ -543,6 +831,79 @@ export default function AdminTicketPage() {
                 Renomear
               </button>
               <button onClick={() => setShowRenameModal(false)} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Sinalizar */}
+      {showFlagModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">🚩 Sinalizar Ticket</h2>
+            <p className="text-gray-400 mb-4">
+              Selecione um atendente para sinalizar este ticket. Ele verá o ticket na aba &ldquo;Tickets Sinalizados&rdquo;.
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Atendente</label>
+              <select
+                value={selectedStaffId}
+                onChange={(e) => setSelectedStaffId(e.target.value)}
+                className="input w-full"
+              >
+                <option value="">Selecione um atendente...</option>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Mensagem (opcional)</label>
+              <textarea
+                value={flagMessage}
+                onChange={(e) => setFlagMessage(e.target.value)}
+                className="textarea w-full"
+                rows={2}
+                placeholder="Ex: Preciso de ajuda com esse caso..."
+              />
+            </div>
+
+            {/* Sinalizações ativas */}
+            {ticketFlags.filter(f => !f.resolved).length > 0 && (
+              <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-sm text-yellow-400 font-medium mb-2">Sinalizações ativas:</p>
+                <ul className="text-sm text-gray-400 space-y-1">
+                  {ticketFlags.filter(f => !f.resolved).map((flag) => (
+                    <li key={flag.id}>
+                      → {flag.flaggedBy.name} sinalizou para {flag.flaggedTo.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button 
+                onClick={handleFlagTicket} 
+                className="btn-primary flex-1"
+                disabled={!selectedStaffId}
+              >
+                Sinalizar
+              </button>
+              <button 
+                onClick={() => {
+                  setShowFlagModal(false)
+                  setSelectedStaffId('')
+                  setFlagMessage('')
+                }} 
+                className="btn-secondary"
+              >
                 Cancelar
               </button>
             </div>

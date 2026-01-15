@@ -7,6 +7,12 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+interface AttachmentInput {
+  url: string
+  filename: string
+  mimeType: string
+}
+
 // Enviar mensagem no ticket (admin/staff)
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -17,10 +23,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    const { content, notifyUser } = await request.json()
+    const { content, notifyUser, attachments } = await request.json() as {
+      content?: string
+      notifyUser?: boolean
+      attachments?: AttachmentInput[]
+    }
 
-    if (!content?.trim()) {
-      return NextResponse.json({ error: 'Mensagem é obrigatória' }, { status: 400 })
+    // Precisa ter conteúdo ou anexos
+    if (!content?.trim() && (!attachments || attachments.length === 0)) {
+      return NextResponse.json({ error: 'Mensagem ou anexo é obrigatório' }, { status: 400 })
     }
 
     const ticket = await prisma.ticket.findUnique({
@@ -37,12 +48,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
-    // Criar mensagem
+    // Criar mensagem com anexos
     const message = await prisma.message.create({
       data: {
-        content: content.trim(),
+        content: content?.trim() || '',
         ticketId: id,
         staffId: session.staffId,
+        attachments: attachments && attachments.length > 0 ? {
+          create: attachments.map(att => ({
+            filename: att.filename,
+            url: att.url,
+            mimeType: att.mimeType,
+            size: 0,
+          }))
+        } : undefined,
       },
       include: {
         staff: {
@@ -71,7 +90,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           ticketNumber: ticket.ticketNumber,
           category: ticket.category,
           subject: ticket.subject,
-          message: content,
+          message: content || 'Nova mensagem com anexo',
           staffName: session.name,
           url: `${baseUrl}/tickets/${ticket.id}`,
         })

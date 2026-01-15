@@ -7,6 +7,12 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+interface AttachmentInput {
+  url: string
+  filename: string
+  mimeType: string
+}
+
 // Enviar mensagem no ticket (usuário)
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -17,10 +23,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    const { content } = await request.json()
+    const { content, attachments } = await request.json() as { 
+      content?: string
+      attachments?: AttachmentInput[] 
+    }
 
-    if (!content?.trim()) {
-      return NextResponse.json({ error: 'Mensagem é obrigatória' }, { status: 400 })
+    // Precisa ter conteúdo ou anexos
+    if (!content?.trim() && (!attachments || attachments.length === 0)) {
+      return NextResponse.json({ error: 'Mensagem ou anexo é obrigatório' }, { status: 400 })
     }
 
     // Verificar se o ticket pertence ao usuário
@@ -39,12 +49,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Criar mensagem
+    // Criar mensagem com anexos
     const message = await prisma.message.create({
       data: {
-        content: content.trim(),
+        content: content?.trim() || '',
         ticketId: id,
         userId: session.user.id,
+        attachments: attachments && attachments.length > 0 ? {
+          create: attachments.map(att => ({
+            filename: att.filename,
+            url: att.url,
+            mimeType: att.mimeType,
+            size: 0,
+          }))
+        } : undefined,
       },
       include: {
         user: {

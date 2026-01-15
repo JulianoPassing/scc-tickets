@@ -35,6 +35,14 @@ interface Ticket {
     role: string
   }
   messages: { content: string }[]
+  // Campos para tickets sinalizados
+  flaggedBy?: {
+    id: string
+    name: string
+    role: string
+  }
+  flagMessage?: string
+  flaggedAt?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; class: string }> = {
@@ -49,8 +57,9 @@ export default function AdminDashboardPage() {
   const router = useRouter()
   const [staff, setStaff] = useState<Staff | null>(null)
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [flaggedTickets, setFlaggedTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'ativos' | 'resolvidos'>('ativos')
+  const [activeTab, setActiveTab] = useState<'ativos' | 'resolvidos' | 'sinalizados'>('ativos')
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
@@ -61,6 +70,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (staff) {
       fetchTickets()
+      fetchFlaggedTickets()
     }
   }, [staff, filter, categoryFilter, activeTab])
 
@@ -96,6 +106,16 @@ export default function AdminDashboardPage() {
     }
   }
 
+  const fetchFlaggedTickets = async () => {
+    try {
+      const res = await fetch('/api/admin/tickets/flagged')
+      const data = await res.json()
+      setFlaggedTickets(data.tickets || [])
+    } catch (error) {
+      console.error('Erro ao carregar tickets sinalizados:', error)
+    }
+  }
+
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' })
     router.push('/admin')
@@ -116,7 +136,11 @@ export default function AdminDashboardPage() {
   // Separar tickets ativos e resolvidos
   const ticketsAtivos = tickets.filter((t) => t.status !== 'FECHADO')
   const ticketsResolvidos = tickets.filter((t) => t.status === 'FECHADO')
-  const currentTickets = activeTab === 'ativos' ? ticketsAtivos : ticketsResolvidos
+  const currentTickets = activeTab === 'ativos' 
+    ? ticketsAtivos 
+    : activeTab === 'resolvidos' 
+    ? ticketsResolvidos 
+    : flaggedTickets
 
   // Aplicar filtros adicionais
   const filteredTickets = currentTickets.filter((t) => {
@@ -132,6 +156,7 @@ export default function AdminDashboardPage() {
     emAtendimento: tickets.filter((t) => t.status === 'EM_ATENDIMENTO').length,
     aguardando: tickets.filter((t) => t.status === 'AGUARDANDO_RESPOSTA').length,
     resolvidos: ticketsResolvidos.length,
+    sinalizados: flaggedTickets.length,
   }
 
   return (
@@ -174,6 +199,21 @@ export default function AdminDashboardPage() {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left"
           >
             ✅ Resolvidos
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('sinalizados')
+              setFilter('all')
+              document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left relative"
+          >
+            🚩 Sinalizados
+            {flaggedTickets.length > 0 && (
+              <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {flaggedTickets.length}
+              </span>
+            )}
           </button>
         </nav>
 
@@ -269,6 +309,25 @@ export default function AdminDashboardPage() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
               )}
             </button>
+            <button
+              onClick={() => {
+                setActiveTab('sinalizados')
+                setFilter('all')
+              }}
+              className={`pb-3 px-2 font-semibold transition-colors relative ${
+                activeTab === 'sinalizados'
+                  ? 'text-primary'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🚩 Tickets Sinalizados
+              <span className={`ml-2 ${flaggedTickets.length > 0 ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'} text-xs px-2 py-0.5 rounded-full`}>
+                {flaggedTickets.length}
+              </span>
+              {activeTab === 'sinalizados' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
           </div>
           
           <div className="flex flex-wrap gap-4 mb-4">
@@ -310,14 +369,22 @@ export default function AdminDashboardPage() {
         {/* Lista de Tickets */}
         {filteredTickets.length === 0 ? (
           <div className="card text-center py-12">
-            <div className="text-6xl mb-4">{activeTab === 'ativos' ? '📭' : '📋'}</div>
+            <div className="text-6xl mb-4">
+              {activeTab === 'ativos' ? '📭' : activeTab === 'resolvidos' ? '📋' : '🚩'}
+            </div>
             <h3 className="text-xl font-semibold mb-2">
-              {activeTab === 'ativos' ? 'Nenhum ticket ativo' : 'Nenhum ticket resolvido'}
+              {activeTab === 'ativos' 
+                ? 'Nenhum ticket ativo' 
+                : activeTab === 'resolvidos'
+                ? 'Nenhum ticket resolvido'
+                : 'Nenhum ticket sinalizado'}
             </h3>
             <p className="text-gray-400">
               {activeTab === 'ativos' 
                 ? 'Não há tickets ativos correspondentes aos filtros selecionados.'
-                : 'Não há tickets resolvidos nas categorias que você tem acesso.'}
+                : activeTab === 'resolvidos'
+                ? 'Não há tickets resolvidos nas categorias que você tem acesso.'
+                : 'Não há tickets sinalizados para você no momento.'}
             </p>
           </div>
         ) : (
@@ -326,8 +393,27 @@ export default function AdminDashboardPage() {
               <Link
                 key={ticket.id}
                 href={`/admin/tickets/${ticket.id}`}
-                className="card block hover:border-primary transition-all duration-200"
+                className={`card block hover:border-primary transition-all duration-200 ${
+                  activeTab === 'sinalizados' ? 'border-red-500/30' : ''
+                }`}
               >
+                {/* Banner de sinalização */}
+                {activeTab === 'sinalizados' && ticket.flaggedBy && (
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border text-sm">
+                    <span className="text-red-400">🚩</span>
+                    <span className="text-gray-400">
+                      Sinalizado por <span className="text-white font-medium">{ticket.flaggedBy.name}</span>
+                      {ticket.flaggedAt && (
+                        <> em {new Date(ticket.flaggedAt).toLocaleString('pt-BR')}</>
+                      )}
+                    </span>
+                    {ticket.flagMessage && (
+                      <span className="text-yellow-400 ml-2">
+                        &ldquo;{ticket.flagMessage}&rdquo;
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <span className="text-3xl">{getCategoryEmoji(ticket.category as any)}</span>

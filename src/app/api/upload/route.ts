@@ -3,9 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
-import { v4 as uuidv4 } from 'uuid'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
 
 // Upload de arquivos (para usuários e admins)
 export async function POST(request: NextRequest) {
@@ -26,21 +23,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
-    // Validar tipo de arquivo
+    // Validar tipo de arquivo (apenas imagens para imgur)
     const allowedTypes = [
       'image/jpeg',
       'image/png',
       'image/gif',
       'image/webp',
-      'application/pdf',
-      'text/plain',
-      'video/mp4',
-      'video/webm',
     ]
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Tipo de arquivo não permitido' },
+        { error: 'Tipo de arquivo não permitido. Apenas imagens são aceitas.' },
         { status: 400 }
       )
     }
@@ -54,21 +47,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Gerar nome único
-    const ext = path.extname(file.name)
-    const filename = `${uuidv4()}${ext}`
-
-    // Salvar arquivo localmente (em produção, usar Cloudinary, S3, etc)
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadsDir, { recursive: true })
-    
+    // Converter arquivo para base64
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    
-    const filePath = path.join(uploadsDir, filename)
-    await writeFile(filePath, buffer)
+    const base64 = buffer.toString('base64')
 
-    const url = `/uploads/${filename}`
+    // Upload para Imgur (API anônima)
+    const imgurResponse = await fetch('https://api.imgur.com/3/image', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Client-ID ' + (process.env.IMGUR_CLIENT_ID || 'c8c5a7ad2b97dd6'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        image: base64,
+        type: 'base64',
+        name: file.name,
+      }),
+    })
+
+    if (!imgurResponse.ok) {
+      const errorData = await imgurResponse.json().catch(() => ({}))
+      console.error('Erro no Imgur:', errorData)
+      return NextResponse.json(
+        { error: 'Erro ao fazer upload da imagem' },
+        { status: 500 }
+      )
+    }
+
+    const imgurData = await imgurResponse.json()
+    const url = imgurData.data?.link
+
+    if (!url) {
+      return NextResponse.json(
+        { error: 'Erro ao obter URL da imagem' },
+        { status: 500 }
+      )
+    }
 
     // Se tiver messageId, salvar no banco
     if (messageId) {

@@ -37,6 +37,10 @@ model Staff {
   
   messages      Message[]
   assignedTickets Ticket[] @relation("AssignedStaff")
+  
+  // Sinalizações
+  flagsCreated  TicketFlag[] @relation("FlaggedByStaff")
+  flagsReceived TicketFlag[] @relation("FlaggedToStaff")
 }
 
 enum StaffRole {
@@ -89,6 +93,7 @@ model Ticket {
   closedReason  String?
   
   messages      Message[]
+  flags         TicketFlag[]  // Sinalizações deste ticket
   
   @@index([userId])
   @@index([status])
@@ -131,6 +136,32 @@ model Attachment {
   message       Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
   
   createdAt     DateTime  @default(now())
+}
+
+// Sinalização de tickets para outros atendentes
+model TicketFlag {
+  id            String    @id @default(cuid())
+  
+  ticketId      String
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  // Staff que sinalizou
+  flaggedById   String
+  flaggedBy     Staff     @relation("FlaggedByStaff", fields: [flaggedById], references: [id])
+  
+  // Staff que foi sinalizado (para quem aparece o ticket)
+  flaggedToId   String
+  flaggedTo     Staff     @relation("FlaggedToStaff", fields: [flaggedToId], references: [id])
+  
+  message       String?   // Mensagem opcional explicando o motivo
+  resolved      Boolean   @default(false) // Se a sinalização já foi resolvida
+  
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+  
+  @@unique([ticketId, flaggedToId]) // Um ticket só pode ser sinalizado uma vez para o mesmo staff
+  @@index([flaggedToId])
+  @@index([ticketId])
 }
 
 // Sessões do admin (para JWT blacklist se necessário)
