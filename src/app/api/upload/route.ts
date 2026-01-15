@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { getAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 
-// Upload de arquivos (para usuários e admins)
+// Upload de arquivos (para usuários e admins) - Usa ImgBB
 export async function POST(request: NextRequest) {
   try {
     // Verificar autenticação (usuário OU admin)
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
-    // Validar tipo de arquivo (apenas imagens para imgur)
+    // Validar tipo de arquivo (apenas imagens)
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -38,11 +38,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar tamanho (max 10MB)
-    const maxSize = 10 * 1024 * 1024
+    // Validar tamanho (max 32MB - limite do ImgBB)
+    const maxSize = 32 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'Arquivo muito grande (máx 10MB)' },
+        { error: 'Arquivo muito grande (máx 32MB)' },
         { status: 400 }
       )
     }
@@ -52,33 +52,40 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     const base64 = buffer.toString('base64')
 
-    // Upload para Imgur (API anônima)
-    const imgurResponse = await fetch('https://api.imgur.com/3/image', {
+    // Upload para ImgBB
+    const imgbbKey = process.env.IMGBB_API_KEY
+    if (!imgbbKey) {
+      console.error('IMGBB_API_KEY não configurada')
+      return NextResponse.json(
+        { error: 'Serviço de upload não configurado' },
+        { status: 500 }
+      )
+    }
+
+    const imgbbFormData = new FormData()
+    imgbbFormData.append('key', imgbbKey)
+    imgbbFormData.append('image', base64)
+    imgbbFormData.append('name', file.name.split('.')[0])
+
+    const imgbbResponse = await fetch('https://api.imgbb.com/1/upload', {
       method: 'POST',
-      headers: {
-        'Authorization': 'Client-ID ' + (process.env.IMGUR_CLIENT_ID || 'c8c5a7ad2b97dd6'),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image: base64,
-        type: 'base64',
-        name: file.name,
-      }),
+      body: imgbbFormData,
     })
 
-    if (!imgurResponse.ok) {
-      const errorData = await imgurResponse.json().catch(() => ({}))
-      console.error('Erro no Imgur:', errorData)
+    if (!imgbbResponse.ok) {
+      const errorData = await imgbbResponse.json().catch(() => ({}))
+      console.error('Erro no ImgBB:', errorData)
       return NextResponse.json(
         { error: 'Erro ao fazer upload da imagem' },
         { status: 500 }
       )
     }
 
-    const imgurData = await imgurResponse.json()
-    const url = imgurData.data?.link
+    const imgbbData = await imgbbResponse.json()
+    const url = imgbbData.data?.url || imgbbData.data?.display_url
 
     if (!url) {
+      console.error('Resposta do ImgBB sem URL:', imgbbData)
       return NextResponse.json(
         { error: 'Erro ao obter URL da imagem' },
         { status: 500 }

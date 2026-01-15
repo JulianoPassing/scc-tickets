@@ -6,6 +6,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   COORDENADOR: ['SUPORTE', 'BUGS', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'],
   COMMUNITY_MANAGER: ['SUPORTE', 'BUGS', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'],
   CEO: ['SUPORTE', 'BUGS', 'DOACOES', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'],
+  DEV: ['SUPORTE', 'BUGS', 'DOACOES', 'BOOST', 'CASAS', 'DENUNCIAS', 'REVISAO'], // Mesmos acessos do CEO
 }
 
 export function canAccessCategory(role: string, category: string): boolean {
@@ -20,4 +21,5 @@ export const ROLE_LABELS: Record<string, string> = {
   COORDENADOR: 'Coordenador',
   COMMUNITY_MANAGER: 'Community Manager',
   CEO: 'CEO',
+  DEV: 'Desenvolvedor',
 }

@@ -1,7 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import { prisma } from './prisma'
-import bcrypt from 'bcryptjs'
 
 // Re-exportar permissões para manter compatibilidade com imports existentes nas API routes
 export { ROLE_PERMISSIONS, canAccessCategory } from './permissions'
@@ -13,7 +11,9 @@ export interface AdminToken {
   username: string
   role: string
   name: string
-  [key: string]: string  // Index signature para compatibilidade com JWTPayload
+  discordId?: string
+  avatar?: string
+  [key: string]: string | undefined  // Index signature para compatibilidade com JWTPayload
 }
 
 export async function signAdminToken(payload: AdminToken): Promise<string> {
@@ -33,23 +33,6 @@ export async function verifyAdminToken(token: string): Promise<AdminToken | null
   } catch {
     return null
   }
-}
-
-export async function authenticateAdmin(username: string, password: string) {
-  const staff = await prisma.staff.findUnique({
-    where: { username, active: true },
-  })
-
-  if (!staff) {
-    return null
-  }
-
-  const isValid = await bcrypt.compare(password, staff.password)
-  if (!isValid) {
-    return null
-  }
-
-  return staff
 }
 
 export async function getAdminSession(): Promise<AdminToken | null> {
