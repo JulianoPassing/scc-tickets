@@ -43,6 +43,7 @@ interface Ticket {
   }
   flagMessage?: string
   flaggedAt?: string
+  flaggedToRole?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; class: string }> = {

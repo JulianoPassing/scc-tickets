@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
+import { getAdminSession, canAccessCategory, ROLE_PERMISSIONS } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { ROLE_LABELS } from '@/lib/permissions'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-// Sinalizar ticket para outro atendente
+// Cargos disponíveis para sinalização
+const AVAILABLE_ROLES = ['SUPORTE', 'MODERADOR', 'COORDENADOR', 'COMMUNITY_MANAGER', 'DEV', 'CEO']
+
+// Sinalizar ticket para um cargo
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getAdminSession()
@@ -17,10 +21,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json()
-    const { staffId, message } = body
+    const { role, message } = body
 
-    if (!staffId) {
-      return NextResponse.json({ error: 'ID do atendente é obrigatório' }, { status: 400 })
+    if (!role) {
+      return NextResponse.json({ error: 'Cargo é obrigatório' }, { status: 400 })
+    }
+
+    if (!AVAILABLE_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'Cargo inválido' }, { status: 400 })
     }
 
     // Verificar se o ticket existe
@@ -37,26 +45,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
-    // Verificar se o staff de destino existe
-    const targetStaff = await prisma.staff.findUnique({
-      where: { id: staffId },
-    })
-
-    if (!targetStaff) {
-      return NextResponse.json({ error: 'Atendente não encontrado' }, { status: 404 })
-    }
-
-    // Não pode sinalizar para si mesmo
-    if (staffId === session.staffId) {
-      return NextResponse.json({ error: 'Não é possível sinalizar para si mesmo' }, { status: 400 })
-    }
-
     // Criar ou atualizar sinalização (upsert para evitar duplicatas)
     const flag = await prisma.ticketFlag.upsert({
       where: {
-        ticketId_flaggedToId: {
+        ticketId_flaggedToRole: {
           ticketId: id,
-          flaggedToId: staffId,
+          flaggedToRole: role,
         },
       },
       update: {
@@ -69,13 +63,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       create: {
         ticketId: id,
         flaggedById: session.staffId,
-        flaggedToId: staffId,
+        flaggedToRole: role,
         message: message || null,
       },
       include: {
-        flaggedTo: {
-          select: { name: true, role: true },
-        },
         flaggedBy: {
           select: { name: true, role: true },
         },
@@ -83,10 +74,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     // Adicionar mensagem de sistema no ticket
+    const roleName = ROLE_LABELS[role] || role
     await prisma.message.create({
       data: {
         ticketId: id,
-        content: `🚩 ${session.name} sinalizou este ticket para ${targetStaff.name}${message ? `: "${message}"` : ''}`,
+        content: `🚩 ${session.name} sinalizou este ticket para o cargo ${roleName}${message ? `: "${message}"` : ''}`,
         isSystemMessage: true,
       },
     })
@@ -115,9 +107,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         message: true,
         resolved: true,
         createdAt: true,
-        flaggedTo: {
-          select: { id: true, name: true, role: true },
-        },
+        flaggedToRole: true,
         flaggedBy: {
           select: { id: true, name: true, role: true },
         },
@@ -142,11 +132,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    // Resolver a sinalização do usuário atual para este ticket
+    // Resolver a sinalização do cargo do usuário atual para este ticket
     const flag = await prisma.ticketFlag.updateMany({
       where: {
         ticketId: id,
-        flaggedToId: session.staffId,
+        flaggedToRole: session.role as any,
         resolved: false,
       },
       data: {

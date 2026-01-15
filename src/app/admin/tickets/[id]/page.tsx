@@ -65,29 +65,28 @@ interface PendingImage {
   preview: string
 }
 
-interface StaffMember {
-  id: string
-  username: string
-  name: string
-  role: string
-}
-
 interface TicketFlagInfo {
   id: string
   message?: string
   resolved: boolean
   createdAt: string
+  flaggedToRole: string
   flaggedBy: {
     id: string
     name: string
     role: string
   }
-  flaggedTo: {
-    id: string
-    name: string
-    role: string
-  }
 }
+
+// Cargos disponíveis para sinalização
+const AVAILABLE_ROLES = [
+  { id: 'SUPORTE', name: 'Suporte' },
+  { id: 'MODERADOR', name: 'Moderador' },
+  { id: 'COORDENADOR', name: 'Coordenador' },
+  { id: 'COMMUNITY_MANAGER', name: 'Community Manager' },
+  { id: 'DEV', name: 'Desenvolvedor' },
+  { id: 'CEO', name: 'CEO' },
+]
 
 const STATUS_LABELS: Record<string, { label: string; class: string }> = {
   ABERTO: { label: 'Aberto', class: 'badge-info' },
@@ -117,8 +116,7 @@ export default function AdminTicketPage() {
   const [newSubject, setNewSubject] = useState('')
   
   // Sinalização
-  const [staffList, setStaffList] = useState<StaffMember[]>([])
-  const [selectedStaffId, setSelectedStaffId] = useState('')
+  const [selectedRole, setSelectedRole] = useState('')
   const [flagMessage, setFlagMessage] = useState('')
   const [ticketFlags, setTicketFlags] = useState<TicketFlagInfo[]>([])
   const [flaggedForMe, setFlaggedForMe] = useState<TicketFlagInfo | null>(null)
@@ -135,7 +133,6 @@ export default function AdminTicketPage() {
     if (staff && ticketId) {
       fetchTicket()
       fetchFlags()
-      fetchStaffList()
       const interval = setInterval(() => {
         fetchTicket()
         fetchFlags()
@@ -225,27 +222,15 @@ export default function AdminTicketPage() {
     }
   }
 
-  const fetchStaffList = async () => {
-    try {
-      const res = await fetch('/api/admin/staff')
-      if (res.ok) {
-        const data = await res.json()
-        setStaffList(data.staff || [])
-      }
-    } catch (error) {
-      console.error('Erro ao carregar lista de atendentes:', error)
-    }
-  }
-
   const fetchFlags = async () => {
     try {
       const res = await fetch(`/api/admin/tickets/${ticketId}/flag`)
       if (res.ok) {
         const data = await res.json()
         setTicketFlags(data.flags || [])
-        // Verificar se este ticket foi sinalizado para o usuário atual
+        // Verificar se este ticket foi sinalizado para o cargo do usuário atual
         const flagForMe = data.flags?.find(
-          (f: TicketFlagInfo) => f.flaggedTo.id === staff?.staffId && !f.resolved
+          (f: TicketFlagInfo) => f.flaggedToRole === staff?.role && !f.resolved
         )
         setFlaggedForMe(flagForMe || null)
       }
@@ -255,21 +240,21 @@ export default function AdminTicketPage() {
   }
 
   const handleFlagTicket = async () => {
-    if (!selectedStaffId) return
+    if (!selectedRole) return
     
     try {
       const res = await fetch(`/api/admin/tickets/${ticketId}/flag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          staffId: selectedStaffId, 
+          role: selectedRole, 
           message: flagMessage || undefined 
         }),
       })
 
       if (res.ok) {
         setShowFlagModal(false)
-        setSelectedStaffId('')
+        setSelectedRole('')
         setFlagMessage('')
         fetchTicket()
         fetchFlags()
@@ -525,7 +510,7 @@ export default function AdminTicketPage() {
                 <span className="text-2xl">🚩</span>
                 <div>
                   <p className="font-medium text-red-400">
-                    Este ticket foi sinalizado para você por {flaggedForMe.flaggedBy.name}
+                    Este ticket foi sinalizado para seu cargo por {flaggedForMe.flaggedBy.name}
                   </p>
                   {flaggedForMe.message && (
                     <p className="text-sm text-gray-400">
@@ -844,20 +829,20 @@ export default function AdminTicketPage() {
           <div className="card max-w-md w-full">
             <h2 className="text-xl font-bold mb-4">🚩 Sinalizar Ticket</h2>
             <p className="text-gray-400 mb-4">
-              Selecione um atendente para sinalizar este ticket. Ele verá o ticket na aba &ldquo;Tickets Sinalizados&rdquo;.
+              Selecione um cargo para sinalizar este ticket. Todos os atendentes desse cargo verão na aba &ldquo;Tickets Sinalizados&rdquo;.
             </p>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Atendente</label>
+              <label className="block text-sm font-medium mb-2">Cargo</label>
               <select
-                value={selectedStaffId}
-                onChange={(e) => setSelectedStaffId(e.target.value)}
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
                 className="input w-full"
               >
-                <option value="">Selecione um atendente...</option>
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.role})
+                <option value="">Selecione um cargo...</option>
+                {AVAILABLE_ROLES.filter(r => r.id !== staff?.role).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
                   </option>
                 ))}
               </select>
@@ -881,7 +866,7 @@ export default function AdminTicketPage() {
                 <ul className="text-sm text-gray-400 space-y-1">
                   {ticketFlags.filter(f => !f.resolved).map((flag) => (
                     <li key={flag.id}>
-                      → {flag.flaggedBy.name} sinalizou para {flag.flaggedTo.name}
+                      → {flag.flaggedBy.name} sinalizou para {AVAILABLE_ROLES.find(r => r.id === flag.flaggedToRole)?.name || flag.flaggedToRole}
                     </li>
                   ))}
                 </ul>
@@ -892,14 +877,14 @@ export default function AdminTicketPage() {
               <button 
                 onClick={handleFlagTicket} 
                 className="btn-primary flex-1"
-                disabled={!selectedStaffId}
+                disabled={!selectedRole}
               >
                 Sinalizar
               </button>
               <button 
                 onClick={() => {
                   setShowFlagModal(false)
-                  setSelectedStaffId('')
+                  setSelectedRole('')
                   setFlagMessage('')
                 }} 
                 className="btn-secondary"

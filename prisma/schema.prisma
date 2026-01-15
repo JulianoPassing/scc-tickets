@@ -38,9 +38,8 @@ model Staff {
   messages      Message[]
   assignedTickets Ticket[] @relation("AssignedStaff")
   
-  // Sinalizações
-  flagsCreated  TicketFlag[] @relation("FlaggedByStaff")
-  flagsReceived TicketFlag[] @relation("FlaggedToStaff")
+  // Sinalizações criadas
+  flagsCreated  TicketFlag[]
 }
 
 enum StaffRole {
@@ -48,6 +47,7 @@ enum StaffRole {
   MODERADOR
   COORDENADOR
   COMMUNITY_MANAGER
+  DEV
   CEO
 }
 
@@ -138,7 +138,7 @@ model Attachment {
   createdAt     DateTime  @default(now())
 }
 
-// Sinalização de tickets para outros atendentes
+// Sinalização de tickets para cargos
 model TicketFlag {
   id            String    @id @default(cuid())
   
@@ -147,11 +147,10 @@ model TicketFlag {
   
   // Staff que sinalizou
   flaggedById   String
-  flaggedBy     Staff     @relation("FlaggedByStaff", fields: [flaggedById], references: [id])
+  flaggedBy     Staff     @relation(fields: [flaggedById], references: [id])
   
-  // Staff que foi sinalizado (para quem aparece o ticket)
-  flaggedToId   String
-  flaggedTo     Staff     @relation("FlaggedToStaff", fields: [flaggedToId], references: [id])
+  // Cargo que foi sinalizado (para qual cargo aparece o ticket)
+  flaggedToRole StaffRole
   
   message       String?   // Mensagem opcional explicando o motivo
   resolved      Boolean   @default(false) // Se a sinalização já foi resolvida
@@ -159,8 +158,8 @@ model TicketFlag {
   createdAt     DateTime  @default(now())
   resolvedAt    DateTime?
   
-  @@unique([ticketId, flaggedToId]) // Um ticket só pode ser sinalizado uma vez para o mesmo staff
-  @@index([flaggedToId])
+  @@unique([ticketId, flaggedToRole]) // Um ticket só pode ser sinalizado uma vez para o mesmo cargo
+  @@index([flaggedToRole])
   @@index([ticketId])
 }
 

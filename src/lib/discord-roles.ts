@@ -6,7 +6,7 @@ export const DISCORD_GUILD_ID = '1046404063287332936'
 // Mapeamento de cargo Discord -> Role do sistema
 export const DISCORD_ROLE_MAP: Record<string, string> = {
   '1046404063689977986': 'CEO',           // CEO
-  '1046404063689977984': 'CEO',           // Dev (mesmos acessos do CEO)
+  '1046404063689977984': 'DEV',           // Dev
   '1046404063522197521': 'COMMUNITY_MANAGER', // Community Manager
   '1226907937117569128': 'MODERADOR',     // Moderador
   '1226903187055972484': 'COORDENADOR',   // Coordenador
@@ -20,6 +20,7 @@ export const ALLOWED_ROLE_IDS = Object.keys(DISCORD_ROLE_MAP)
 // Se o usuário tiver múltiplos cargos, usa o de maior prioridade
 export const ROLE_PRIORITY: Record<string, number> = {
   'CEO': 100,
+  'DEV': 100, // Mesma prioridade do CEO
   'COMMUNITY_MANAGER': 80,
   'COORDENADOR': 60,
   'MODERADOR': 40,
