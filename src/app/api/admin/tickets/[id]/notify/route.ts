@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const success = await sendDiscordDM(
+    const result = await sendDiscordDM(
       ticket.user.discordId,
       createTicketNotificationEmbed('ticket_updated', {
         ticketNumber: ticket.ticketNumber,
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
     )
 
-    if (success) {
+    if (result.success) {
       // Adicionar mensagem de sistema no ticket
       await prisma.message.create({
         data: {
@@ -54,6 +54,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       return NextResponse.json({ success: true, message: 'Notificação enviada' })
     } else {
+      // Tratar erros específicos
+      if (result.error === 'dm_disabled') {
+        return NextResponse.json(
+          { error: 'O usuário desabilitou DMs ou bloqueou o bot', code: 'dm_disabled' },
+          { status: 400 }
+        )
+      }
       return NextResponse.json(
         { error: 'Não foi possível enviar a notificação' },
         { status: 500 }

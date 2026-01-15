@@ -1,10 +1,15 @@
 // Utilitários para integração com Discord
 
-export async function sendDiscordDM(userId: string, embed: DiscordEmbed) {
+export interface DMResult {
+  success: boolean
+  error?: 'not_configured' | 'dm_disabled' | 'unknown'
+}
+
+export async function sendDiscordDM(userId: string, embed: DiscordEmbed): Promise<DMResult> {
   const botToken = process.env.DISCORD_BOT_TOKEN
   if (!botToken) {
     console.error('DISCORD_BOT_TOKEN não configurado')
-    return false
+    return { success: false, error: 'not_configured' }
   }
 
   try {
@@ -20,7 +25,7 @@ export async function sendDiscordDM(userId: string, embed: DiscordEmbed) {
 
     if (!dmResponse.ok) {
       console.error('Erro ao criar DM channel:', await dmResponse.text())
-      return false
+      return { success: false, error: 'unknown' }
     }
 
     const dmChannel = await dmResponse.json()
@@ -36,14 +41,20 @@ export async function sendDiscordDM(userId: string, embed: DiscordEmbed) {
     })
 
     if (!messageResponse.ok) {
-      console.error('Erro ao enviar DM:', await messageResponse.text())
-      return false
+      const errorData = await messageResponse.json().catch(() => ({}))
+      console.error('Erro ao enviar DM:', JSON.stringify(errorData))
+      
+      // Código 50007 = Cannot send messages to this user (DMs desabilitadas)
+      if (errorData.code === 50007) {
+        return { success: false, error: 'dm_disabled' }
+      }
+      return { success: false, error: 'unknown' }
     }
 
-    return true
+    return { success: true }
   } catch (error) {
     console.error('Erro ao enviar DM:', error)
-    return false
+    return { success: false, error: 'unknown' }
   }
 }
 
