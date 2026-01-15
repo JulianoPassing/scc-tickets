@@ -26,6 +26,7 @@ interface Message {
   staff?: {
     name: string
     role: string
+    avatar?: string
   }
   attachments: {
     id: string
@@ -552,6 +553,14 @@ export default function AdminTicketPage() {
                         {msg.user?.avatar ? (
                           <Image
                             src={msg.user.avatar}
+                            alt="Avatar"
+                            width={36}
+                            height={36}
+                            className="rounded-full"
+                          />
+                        ) : msg.staff?.avatar ? (
+                          <Image
+                            src={msg.staff.avatar}
                             alt="Avatar"
                             width={36}
                             height={36}

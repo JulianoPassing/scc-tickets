@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
           select: { username: true, displayName: true, avatar: true, discordId: true },
         },
         assignedTo: {
-          select: { name: true, role: true },
+          select: { name: true, role: true, avatar: true },
         },
         messages: {
           take: 1,

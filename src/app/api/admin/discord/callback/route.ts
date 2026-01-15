@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
       update: {
         name: displayName,
         role: systemRole as any,
+        avatar: avatarUrl || null,
         active: true,
       },
       create: {
@@ -121,6 +122,7 @@ export async function GET(request: NextRequest) {
         password: '', // Não usado mais (login via Discord)
         name: displayName,
         role: systemRole as any,
+        avatar: avatarUrl || null,
         active: true,
       },
     })

@@ -31,6 +31,7 @@ model Staff {
   password      String
   name          String
   role          StaffRole
+  avatar        String?   // Avatar do Discord
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

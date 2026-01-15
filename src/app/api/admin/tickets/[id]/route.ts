@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               select: { username: true, displayName: true, avatar: true },
             },
             staff: {
-              select: { name: true, role: true },
+              select: { name: true, role: true, avatar: true },
             },
             attachments: true,
           },
