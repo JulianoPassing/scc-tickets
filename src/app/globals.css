@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #EAF207;
+  --secondary: #F4F740;
+  --accent: #C6C403;
+  --background: #0D0D0D;
+  --card: #1A1A1A;
+  --border: #30363D;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--background);
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 242, 7, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(234, 242, 7, 0.2);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Utilitários */
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-background font-semibold px-6 py-3 rounded-lg 
+           hover:bg-secondary transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  .btn-secondary {
+    @apply bg-card border border-border text-white font-medium px-6 py-3 rounded-lg 
+           hover:border-primary hover:text-primary transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-border focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white font-medium px-6 py-3 rounded-lg 
+           hover:bg-red-700 transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  .card {
+    @apply bg-card border border-border rounded-xl p-6;
+  }
+
+  .input {
+    @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-white
+           placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
+           transition-all duration-200;
+  }
+
+  .textarea {
+    @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-white
+           placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
+           transition-all duration-200 resize-none;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-300 mb-2;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary/20 text-primary;
+  }
+
+  .badge-success {
+    @apply bg-green-500/20 text-green-400;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-500/20 text-yellow-400;
+  }
+
+  .badge-danger {
+    @apply bg-red-500/20 text-red-400;
+  }
+
+  .badge-info {
+    @apply bg-blue-500/20 text-blue-400;
+  }
+}
+
+/* Chat messages */
+.message-user {
+  @apply bg-primary/10 border-l-4 border-primary;
+}
+
+.message-staff {
+  @apply bg-blue-500/10 border-l-4 border-blue-500;
+}
+
+.message-system {
+  @apply bg-gray-500/10 border-l-4 border-gray-500 italic;
+}

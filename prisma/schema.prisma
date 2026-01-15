@@ -1,0 +1,143 @@
+// Prisma Schema - Sistema de Tickets SCC
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuário do Discord (quem abre tickets)
+model User {
+  id            String    @id @default(cuid())
+  discordId     String    @unique
+  username      String
+  displayName   String?
+  avatar        String?
+  email         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  tickets       Ticket[]
+  messages      Message[]
+}
+
+// Staff/Atendente (quem responde tickets)
+model Staff {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  password      String
+  name          String
+  role          StaffRole
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  messages      Message[]
+  assignedTickets Ticket[] @relation("AssignedStaff")
+}
+
+enum StaffRole {
+  SUPORTE
+  MODERADOR
+  COORDENADOR
+  COMMUNITY_MANAGER
+  CEO
+}
+
+// Categorias de tickets
+enum TicketCategory {
+  SUPORTE
+  BUGS
+  DENUNCIAS
+  DOACOES
+  BOOST
+  CASAS
+  REVISAO
+}
+
+// Status do ticket
+enum TicketStatus {
+  ABERTO
+  EM_ATENDIMENTO
+  AGUARDANDO_RESPOSTA
+  FECHADO
+}
+
+// Ticket
+model Ticket {
+  id            String        @id @default(cuid())
+  ticketNumber  Int           @default(autoincrement())
+  category      TicketCategory
+  subject       String
+  status        TicketStatus  @default(ABERTO)
+  priority      Int           @default(0)
+  
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  
+  assignedToId  String?
+  assignedTo    Staff?        @relation("AssignedStaff", fields: [assignedToId], references: [id])
+  
+  discordChannelId String?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  closedAt      DateTime?
+  closedReason  String?
+  
+  messages      Message[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+}
+
+// Mensagens do chat
+model Message {
+  id            String    @id @default(cuid())
+  content       String    @db.Text
+  
+  ticketId      String
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  // Pode ser enviada por usuário OU staff
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  
+  staffId       String?
+  staff         Staff?    @relation(fields: [staffId], references: [id])
+  
+  isSystemMessage Boolean @default(false)
+  
+  attachments   Attachment[]
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([ticketId])
+}
+
+// Anexos (imagens, arquivos)
+model Attachment {
+  id            String    @id @default(cuid())
+  filename      String
+  url           String
+  mimeType      String
+  size          Int
+  
+  messageId     String
+  message       Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime  @default(now())
+}
+
+// Sessões do admin (para JWT blacklist se necessário)
+model AdminSession {
+  id            String    @id @default(cuid())
+  staffId       String
+  token         String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+}
