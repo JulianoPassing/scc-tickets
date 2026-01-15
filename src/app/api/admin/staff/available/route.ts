@@ -35,38 +35,95 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Bot não configurado' }, { status: 500 })
     }
 
-    // Buscar membros do servidor com os cargos de staff
-    const staffRoleIds = Object.keys(DISCORD_ROLE_MAP)
-    
-    // Buscar todos os membros do servidor (limitado a 1000)
-    const membersResponse = await fetch(
-      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000`,
-      {
-        headers: {
-          Authorization: `Bot ${botToken}`,
-        },
-      }
-    )
+    // Determinar quais cargos têm acesso à categoria
+    const rolesWithAccess = Object.entries(DISCORD_ROLE_MAP)
+      .filter(([_, systemRole]) => {
+        const permissions = ROLE_PERMISSIONS[systemRole]
+        return permissions?.includes(category)
+      })
+      .map(([discordRoleId]) => discordRoleId)
 
-    if (!membersResponse.ok) {
-      const errorText = await membersResponse.text()
-      console.error('Erro ao buscar membros:', errorText)
-      return NextResponse.json({ error: 'Erro ao buscar membros', details: errorText }, { status: 500 })
+    console.log(`Cargos com acesso à categoria ${category}:`, rolesWithAccess)
+
+    if (rolesWithAccess.length === 0) {
+      return NextResponse.json({ staff: [] })
     }
 
-    const members: GuildMember[] = await membersResponse.json()
-    console.log(`Encontrados ${members.length} membros no servidor`)
+    // Buscar membros de cada cargo que tem acesso
+    const membersMap = new Map<string, GuildMember>()
 
-    // Filtrar membros que:
-    // 1. Têm algum cargo de staff
-    // 2. O cargo tem permissão para acessar a categoria
-    // 3. Não é o próprio usuário logado
-    const availableStaff = members
+    for (const roleId of rolesWithAccess) {
+      try {
+        // Buscar membros com este cargo específico
+        // Usando search com role_id (não funciona diretamente, então vamos usar outra abordagem)
+        // A API de members não filtra por role, então precisamos usar uma abordagem diferente
+        
+        // Vamos buscar usando a API de search que permite buscar por query vazia
+        // mas isso também tem limitações...
+        
+        // Melhor abordagem: usar a API de guild roles para pegar os membros
+        // Mas essa API não existe diretamente...
+        
+        // Solução: paginar através de todos os membros usando 'after'
+        let after = '0'
+        let hasMore = true
+        let iterations = 0
+        const maxIterations = 30 // máximo 30.000 membros
+
+        while (hasMore && iterations < maxIterations) {
+          const membersResponse = await fetch(
+            `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
+            {
+              headers: {
+                Authorization: `Bot ${botToken}`,
+              },
+            }
+          )
+
+          if (!membersResponse.ok) {
+            console.error('Erro ao buscar membros:', await membersResponse.text())
+            break
+          }
+
+          const members: GuildMember[] = await membersResponse.json()
+          
+          if (members.length === 0) {
+            hasMore = false
+            break
+          }
+
+          // Filtrar membros que têm cargos de staff
+          for (const member of members) {
+            if (member.roles.some(r => rolesWithAccess.includes(r))) {
+              membersMap.set(member.user.id, member)
+            }
+          }
+
+          // Próxima página
+          after = members[members.length - 1].user.id
+          iterations++
+          
+          // Se encontramos menos de 1000, não há mais páginas
+          if (members.length < 1000) {
+            hasMore = false
+          }
+        }
+
+        console.log(`Após ${iterations} iterações, encontrados ${membersMap.size} membros com cargos de staff`)
+        
+        // Já encontramos todos os membros necessários, não precisa continuar o loop de roles
+        break
+        
+      } catch (error) {
+        console.error(`Erro ao buscar membros do cargo ${roleId}:`, error)
+      }
+    }
+
+    // Converter para array e filtrar
+    const staffRoleIds = Object.keys(DISCORD_ROLE_MAP)
+    
+    const availableStaff = Array.from(membersMap.values())
       .filter((member) => {
-        // Verificar se tem algum cargo de staff
-        const hasStaffRole = member.roles.some((roleId) => staffRoleIds.includes(roleId))
-        if (!hasStaffRole) return false
-
         // Não pode sinalizar para si mesmo
         if (member.user.id === session.discordId) return false
 
@@ -130,7 +187,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`Atendentes disponíveis para categoria ${category}:`, availableStaff.length)
     console.log('Atendentes:', availableStaff.map(s => `${s.name} (${s.role})`))
-    
+
     return NextResponse.json({ staff: availableStaff })
   } catch (error) {
     console.error('Erro ao listar atendentes:', error)
