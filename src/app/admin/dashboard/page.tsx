@@ -22,6 +22,8 @@ interface Ticket {
   status: string
   createdAt: string
   updatedAt: string
+  closedAt?: string
+  closedReason?: string
   user: {
     username: string
     displayName: string
@@ -55,6 +57,7 @@ export default function AdminDashboardPage() {
   const [staff, setStaff] = useState<Staff | null>(null)
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'ativos' | 'resolvidos'>('ativos')
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
@@ -66,7 +69,7 @@ export default function AdminDashboardPage() {
     if (staff) {
       fetchTickets()
     }
-  }, [staff, filter, categoryFilter])
+  }, [staff, filter, categoryFilter, activeTab])
 
   const checkAuth = async () => {
     try {
@@ -117,12 +120,25 @@ export default function AdminDashboardPage() {
 
   const allowedCategories = ROLE_PERMISSIONS[staff.role] || []
 
+  // Separar tickets ativos e resolvidos
+  const ticketsAtivos = tickets.filter((t) => t.status !== 'FECHADO')
+  const ticketsResolvidos = tickets.filter((t) => t.status === 'FECHADO')
+  const currentTickets = activeTab === 'ativos' ? ticketsAtivos : ticketsResolvidos
+
+  // Aplicar filtros adicionais
+  const filteredTickets = currentTickets.filter((t) => {
+    if (activeTab === 'ativos' && filter !== 'all' && t.status !== filter) return false
+    if (categoryFilter !== 'all' && t.category !== categoryFilter) return false
+    return true
+  })
+
   // Estatísticas
   const stats = {
     total: tickets.length,
     abertos: tickets.filter((t) => t.status === 'ABERTO').length,
     emAtendimento: tickets.filter((t) => t.status === 'EM_ATENDIMENTO').length,
     aguardando: tickets.filter((t) => t.status === 'AGUARDANDO_RESPOSTA').length,
+    resolvidos: ticketsResolvidos.length,
   }
 
   return (
@@ -146,12 +162,26 @@ export default function AdminDashboardPage() {
           >
             📊 Dashboard
           </Link>
-          <a
-            href="#tickets"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors"
+          <button
+            onClick={() => {
+              setActiveTab('ativos')
+              setFilter('all')
+              document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left"
           >
-            🎫 Tickets
-          </a>
+            🎫 Tickets Ativos
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('resolvidos')
+              setFilter('all')
+              document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left"
+          >
+            ✅ Resolvidos
+          </button>
         </nav>
 
         <div className="border-t border-border pt-4 mt-4">
@@ -181,7 +211,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="card">
             <p className="text-gray-400 text-sm mb-1">Total de Tickets</p>
             <p className="text-3xl font-bold">{stats.total}</p>
@@ -198,29 +228,75 @@ export default function AdminDashboardPage() {
             <p className="text-gray-400 text-sm mb-1">Aguardando Resposta</p>
             <p className="text-3xl font-bold text-primary">{stats.aguardando}</p>
           </div>
+          <div className="card border-green-500/30">
+            <p className="text-gray-400 text-sm mb-1">Resolvidos</p>
+            <p className="text-3xl font-bold text-green-400">{stats.resolvidos}</p>
+          </div>
         </div>
 
-        {/* Filtros */}
+        {/* Abas e Filtros */}
         <div id="tickets" className="mb-6">
-          <h2 className="text-xl font-bold mb-4">Tickets</h2>
+          {/* Abas principais */}
+          <div className="flex gap-4 mb-6 border-b border-border">
+            <button
+              onClick={() => {
+                setActiveTab('ativos')
+                setFilter('all')
+              }}
+              className={`pb-3 px-2 font-semibold transition-colors relative ${
+                activeTab === 'ativos'
+                  ? 'text-primary'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🎫 Tickets Ativos
+              <span className="ml-2 bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full">
+                {ticketsAtivos.length}
+              </span>
+              {activeTab === 'ativos' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('resolvidos')
+                setFilter('all')
+              }}
+              className={`pb-3 px-2 font-semibold transition-colors relative ${
+                activeTab === 'resolvidos'
+                  ? 'text-primary'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              ✅ Tickets Resolvidos
+              <span className="ml-2 bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">
+                {ticketsResolvidos.length}
+              </span>
+              {activeTab === 'resolvidos' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          </div>
           
           <div className="flex flex-wrap gap-4 mb-4">
-            {/* Filtro de Status */}
-            <div className="flex flex-wrap gap-2">
-              {['all', 'ABERTO', 'EM_ATENDIMENTO', 'AGUARDANDO_RESPOSTA', 'FECHADO'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilter(status)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    filter === status
-                      ? 'bg-primary text-background'
-                      : 'bg-card border border-border hover:border-primary'
-                  }`}
-                >
-                  {status === 'all' ? 'Todos' : STATUS_LABELS[status]?.label}
-                </button>
-              ))}
-            </div>
+            {/* Filtro de Status (apenas para tickets ativos) */}
+            {activeTab === 'ativos' && (
+              <div className="flex flex-wrap gap-2">
+                {['all', 'ABERTO', 'EM_ATENDIMENTO', 'AGUARDANDO_RESPOSTA'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setFilter(status)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      filter === status
+                        ? 'bg-primary text-background'
+                        : 'bg-card border border-border hover:border-primary'
+                    }`}
+                  >
+                    {status === 'all' ? 'Todos' : STATUS_LABELS[status]?.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Filtro de Categoria */}
             <select
@@ -239,17 +315,21 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Lista de Tickets */}
-        {tickets.length === 0 ? (
+        {filteredTickets.length === 0 ? (
           <div className="card text-center py-12">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-xl font-semibold mb-2">Nenhum ticket encontrado</h3>
+            <div className="text-6xl mb-4">{activeTab === 'ativos' ? '📭' : '📋'}</div>
+            <h3 className="text-xl font-semibold mb-2">
+              {activeTab === 'ativos' ? 'Nenhum ticket ativo' : 'Nenhum ticket resolvido'}
+            </h3>
             <p className="text-gray-400">
-              Não há tickets correspondentes aos filtros selecionados.
+              {activeTab === 'ativos' 
+                ? 'Não há tickets ativos correspondentes aos filtros selecionados.'
+                : 'Não há tickets resolvidos nas categorias que você tem acesso.'}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {tickets.map((ticket) => (
+            {filteredTickets.map((ticket) => (
               <Link
                 key={ticket.id}
                 href={`/admin/tickets/${ticket.id}`}
@@ -288,7 +368,13 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                     <div className="text-right text-sm text-gray-400">
-                      <p>{new Date(ticket.updatedAt).toLocaleString('pt-BR')}</p>
+                      {ticket.status === 'FECHADO' && ticket.closedAt ? (
+                        <p className="text-green-400">
+                          Fechado em {new Date(ticket.closedAt).toLocaleString('pt-BR')}
+                        </p>
+                      ) : (
+                        <p>{new Date(ticket.updatedAt).toLocaleString('pt-BR')}</p>
+                      )}
                       {ticket.assignedTo && (
                         <p className="text-primary text-xs">{ticket.assignedTo.name}</p>
                       )}

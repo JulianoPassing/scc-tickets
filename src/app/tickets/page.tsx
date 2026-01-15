@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { getCategoryEmoji } from '@/lib/categories'
+import { getCategoryEmoji, getCategoryInfo } from '@/lib/categories'
 
 interface Ticket {
   id: string

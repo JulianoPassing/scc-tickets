@@ -22,7 +22,16 @@ export async function GET(request: NextRequest) {
         ...(status && { status }),
         ...(category && { category: category as any }),
       },
-      include: {
+      select: {
+        id: true,
+        ticketNumber: true,
+        category: true,
+        subject: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        closedAt: true,
+        closedReason: true,
         user: {
           select: { username: true, displayName: true, avatar: true, discordId: true },
         },
@@ -32,6 +41,7 @@ export async function GET(request: NextRequest) {
         messages: {
           take: 1,
           orderBy: { createdAt: 'desc' },
+          select: { content: true },
         },
       },
       orderBy: [

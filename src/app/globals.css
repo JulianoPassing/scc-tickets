@@ -5,12 +5,31 @@
 @tailwind utilities;
 
 :root {
+  /* Cores principais */
   --primary: #EAF207;
-  --secondary: #F4F740;
-  --accent: #C6C403;
+  --primary-hover: #F4F740;
+  --primary-active: #C6C403;
+  --primary-disabled: #888A3A;
+  --primary-50: #EAF20780;
+  --primary-20: #EAF20733;
+  
+  /* Fundo e estrutura */
   --background: #0D0D0D;
   --card: #1A1A1A;
   --border: #30363D;
+  
+  /* Texto */
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0B0;
+  
+  /* Cores das categorias */
+  --cat-suporte: #6366F1;
+  --cat-bugs: #22C55E;
+  --cat-denuncias: #EF4444;
+  --cat-doacoes: #A855F7;
+  --cat-boost: #EC4899;
+  --cat-casas: #F59E0B;
+  --cat-revisao: #06B6D4;
 }
 
 * {
@@ -22,7 +41,7 @@
 body {
   font-family: 'Poppins', sans-serif;
   background-color: var(--background);
-  color: #ffffff;
+  color: var(--text-primary);
   min-height: 100vh;
 }
 
@@ -78,20 +97,22 @@ body {
 @layer components {
   .btn-primary {
     @apply bg-primary text-background font-semibold px-6 py-3 rounded-lg 
-           hover:bg-secondary transition-all duration-200 
+           hover:bg-primary-hover active:bg-primary-active
+           disabled:bg-primary-disabled disabled:cursor-not-allowed
+           transition-all duration-200 
            focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
   }
 
   .btn-secondary {
-    @apply bg-card border border-border text-white font-medium px-6 py-3 rounded-lg 
+    @apply bg-card border border-border text-text-primary font-medium px-6 py-3 rounded-lg 
            hover:border-primary hover:text-primary transition-all duration-200
            focus:outline-none focus:ring-2 focus:ring-border focus:ring-offset-2 focus:ring-offset-background;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white font-medium px-6 py-3 rounded-lg 
+    @apply bg-cat-denuncias text-white font-medium px-6 py-3 rounded-lg 
            hover:bg-red-700 transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-background;
+           focus:outline-none focus:ring-2 focus:ring-cat-denuncias focus:ring-offset-2 focus:ring-offset-background;
   }
 
   .card {
@@ -99,19 +120,19 @@ body {
   }
 
   .input {
-    @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-white
-           placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
+    @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary
+           placeholder:text-text-secondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
            transition-all duration-200;
   }
 
   .textarea {
-    @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-white
-           placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
+    @apply w-full bg-background border border-border rounded-lg px-4 py-3 text-text-primary
+           placeholder:text-text-secondary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary
            transition-all duration-200 resize-none;
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-300 mb-2;
+    @apply block text-sm font-medium text-text-secondary mb-2;
   }
 
   .badge {
@@ -119,23 +140,46 @@ body {
   }
 
   .badge-primary {
-    @apply bg-primary/20 text-primary;
+    @apply bg-primary-20 text-primary;
   }
 
   .badge-success {
-    @apply bg-green-500/20 text-green-400;
+    @apply bg-cat-bugs/20 text-cat-bugs;
   }
 
   .badge-warning {
-    @apply bg-yellow-500/20 text-yellow-400;
+    @apply bg-cat-casas/20 text-cat-casas;
   }
 
   .badge-danger {
-    @apply bg-red-500/20 text-red-400;
+    @apply bg-cat-denuncias/20 text-cat-denuncias;
   }
 
   .badge-info {
-    @apply bg-blue-500/20 text-blue-400;
+    @apply bg-cat-suporte/20 text-cat-suporte;
+  }
+
+  /* Badges por categoria */
+  .badge-cat-suporte {
+    @apply bg-cat-suporte/20 text-cat-suporte;
+  }
+  .badge-cat-bugs {
+    @apply bg-cat-bugs/20 text-cat-bugs;
+  }
+  .badge-cat-denuncias {
+    @apply bg-cat-denuncias/20 text-cat-denuncias;
+  }
+  .badge-cat-doacoes {
+    @apply bg-cat-doacoes/20 text-cat-doacoes;
+  }
+  .badge-cat-boost {
+    @apply bg-cat-boost/20 text-cat-boost;
+  }
+  .badge-cat-casas {
+    @apply bg-cat-casas/20 text-cat-casas;
+  }
+  .badge-cat-revisao {
+    @apply bg-cat-revisao/20 text-cat-revisao;
   }
 }
 
