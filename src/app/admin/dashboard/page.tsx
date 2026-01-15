@@ -12,6 +12,7 @@ interface Staff {
   username: string
   name: string
   role: string
+  avatar?: string
 }
 
 interface Ticket {
@@ -221,9 +222,19 @@ export default function AdminDashboardPage() {
 
         <div className="border-t border-border pt-4 mt-4">
           <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-              {staff.name[0]}
-            </div>
+            {staff.avatar ? (
+              <Image
+                src={staff.avatar}
+                alt={staff.name}
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                {staff.name[0]}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{staff.name}</p>
               <p className="text-xs text-primary">{ROLE_LABELS[staff.role]}</p>
