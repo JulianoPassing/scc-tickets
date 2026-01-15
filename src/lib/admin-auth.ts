@@ -13,6 +13,7 @@ export interface AdminToken {
   username: string
   role: string
   name: string
+  [key: string]: string  // Index signature para compatibilidade com JWTPayload
 }
 
 export async function signAdminToken(payload: AdminToken): Promise<string> {
