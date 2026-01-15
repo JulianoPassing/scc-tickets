@@ -11,6 +11,7 @@ function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/tickets'
+  const error = searchParams.get('error')
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -38,6 +39,15 @@ function LoginContent() {
             className="mx-auto"
           />
         </Link>
+
+        {error === 'no_permission' && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+            <p className="text-red-400 font-medium">Acesso negado</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Você não tem permissão para abrir tickets. Entre no servidor e obtenha os cargos necessários.
+            </p>
+          </div>
+        )}
 
         <h1 className="text-2xl font-bold mb-2">Entrar no Sistema</h1>
         <p className="text-gray-400 mb-8">
