@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/lib/permissions'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-// Sinalizar ticket para um atendente específico
+// Sinalizar ticket para um ou mais cargos
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getAdminSession()
@@ -17,10 +18,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json()
-    const { staffId, message } = body
+    const { roles, message } = body // roles é um array de cargos
 
-    if (!staffId) {
-      return NextResponse.json({ error: 'Atendente é obrigatório' }, { status: 400 })
+    if (!roles || !Array.isArray(roles) || roles.length === 0) {
+      return NextResponse.json({ error: 'Pelo menos um cargo é obrigatório' }, { status: 400 })
     }
 
     // Verificar se o ticket existe
@@ -37,61 +38,59 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
-    // Buscar ou criar o staff no banco (pode não existir ainda se nunca logou)
-    let targetStaff = await prisma.staff.findFirst({
-      where: { username: staffId }, // staffId é o Discord ID
+    // Verificar se os cargos selecionados têm acesso à categoria
+    const validRoles = roles.filter((role: string) => {
+      const permissions = ROLE_PERMISSIONS[role]
+      return permissions?.includes(ticket.category)
     })
 
-    if (!targetStaff) {
-      return NextResponse.json({ error: 'Atendente não encontrado no sistema' }, { status: 404 })
+    if (validRoles.length === 0) {
+      return NextResponse.json({ error: 'Nenhum cargo selecionado tem acesso a esta categoria' }, { status: 400 })
     }
 
-    // Verificar se o atendente tem acesso à categoria
-    if (!canAccessCategory(targetStaff.role, ticket.category)) {
-      return NextResponse.json({ error: 'Atendente não tem acesso a esta categoria' }, { status: 400 })
-    }
-
-    // Criar ou atualizar sinalização (upsert para evitar duplicatas)
-    const flag = await prisma.ticketFlag.upsert({
-      where: {
-        ticketId_flaggedToId: {
+    // Criar sinalizações para cada cargo
+    const createdFlags = []
+    for (const role of validRoles) {
+      const flag = await prisma.ticketFlag.upsert({
+        where: {
+          ticketId_flaggedToRole: {
+            ticketId: id,
+            flaggedToRole: role,
+          },
+        },
+        update: {
+          message: message || null,
+          resolved: false,
+          resolvedAt: null,
+          flaggedById: session.staffId,
+          createdAt: new Date(),
+        },
+        create: {
           ticketId: id,
-          flaggedToId: targetStaff.id,
+          flaggedById: session.staffId,
+          flaggedToRole: role,
+          message: message || null,
         },
-      },
-      update: {
-        message: message || null,
-        resolved: false,
-        resolvedAt: null,
-        flaggedById: session.staffId,
-        createdAt: new Date(),
-      },
-      create: {
-        ticketId: id,
-        flaggedById: session.staffId,
-        flaggedToId: targetStaff.id,
-        message: message || null,
-      },
-      include: {
-        flaggedBy: {
-          select: { name: true, role: true },
+        include: {
+          flaggedBy: {
+            select: { name: true, role: true },
+          },
         },
-        flaggedTo: {
-          select: { name: true, role: true, avatar: true },
-        },
-      },
-    })
+      })
+      createdFlags.push(flag)
+    }
 
     // Adicionar mensagem de sistema no ticket
+    const roleNames = validRoles.map((r: string) => ROLE_LABELS[r] || r).join(', ')
     await prisma.message.create({
       data: {
         ticketId: id,
-        content: `🚩 ${session.name} sinalizou este ticket para ${targetStaff.name}${message ? `: "${message}"` : ''}`,
+        content: `🚩 ${session.name} sinalizou este ticket para: ${roleNames}${message ? ` - "${message}"` : ''}`,
         isSystemMessage: true,
       },
     })
 
-    return NextResponse.json({ flag, success: true })
+    return NextResponse.json({ flags: createdFlags, success: true })
   } catch (error) {
     console.error('Erro ao sinalizar ticket:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
@@ -115,10 +114,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         message: true,
         resolved: true,
         createdAt: true,
+        flaggedToRole: true,
         flaggedBy: {
-          select: { id: true, name: true, role: true, avatar: true },
-        },
-        flaggedTo: {
           select: { id: true, name: true, role: true, avatar: true },
         },
       },
@@ -142,11 +139,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    // Resolver a sinalização do atendente atual para este ticket
+    // Resolver a sinalização do cargo do atendente atual para este ticket
     const flag = await prisma.ticketFlag.updateMany({
       where: {
         ticketId: id,
-        flaggedToId: session.staffId,
+        flaggedToRole: session.role as any,
         resolved: false,
       },
       data: {

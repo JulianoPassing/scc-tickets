@@ -71,13 +71,8 @@ interface TicketFlagInfo {
   message?: string
   resolved: boolean
   createdAt: string
+  flaggedToRole: string
   flaggedBy: {
-    id: string
-    name: string
-    role: string
-    avatar?: string
-  }
-  flaggedTo: {
     id: string
     name: string
     role: string
@@ -85,12 +80,9 @@ interface TicketFlagInfo {
   }
 }
 
-interface AvailableStaff {
-  discordId: string
+interface AvailableRole {
+  id: string
   name: string
-  username: string
-  role: string
-  avatar?: string
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -130,12 +122,12 @@ export default function AdminTicketPage() {
   const [newSubject, setNewSubject] = useState('')
   
   // Sinalização
-  const [selectedStaffId, setSelectedStaffId] = useState('')
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [flagMessage, setFlagMessage] = useState('')
   const [ticketFlags, setTicketFlags] = useState<TicketFlagInfo[]>([])
   const [flaggedForMe, setFlaggedForMe] = useState<TicketFlagInfo | null>(null)
-  const [availableStaff, setAvailableStaff] = useState<AvailableStaff[]>([])
-  const [loadingStaff, setLoadingStaff] = useState(false)
+  const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -244,9 +236,9 @@ export default function AdminTicketPage() {
       if (res.ok) {
         const data = await res.json()
         setTicketFlags(data.flags || [])
-        // Verificar se este ticket foi sinalizado para o atendente atual
+        // Verificar se este ticket foi sinalizado para o cargo do atendente atual
         const flagForMe = data.flags?.find(
-          (f: TicketFlagInfo) => f.flaggedTo.id === staff?.staffId && !f.resolved
+          (f: TicketFlagInfo) => f.flaggedToRole === staff?.role && !f.resolved
         )
         setFlaggedForMe(flagForMe || null)
       }
@@ -255,38 +247,38 @@ export default function AdminTicketPage() {
     }
   }
 
-  const fetchAvailableStaff = async () => {
+  const fetchAvailableRoles = async () => {
     if (!ticket) return
-    setLoadingStaff(true)
+    setLoadingRoles(true)
     try {
       const res = await fetch(`/api/admin/staff/available?category=${ticket.category}`)
       if (res.ok) {
         const data = await res.json()
-        setAvailableStaff(data.staff || [])
+        setAvailableRoles(data.roles || [])
       }
     } catch (error) {
-      console.error('Erro ao carregar atendentes:', error)
+      console.error('Erro ao carregar cargos:', error)
     } finally {
-      setLoadingStaff(false)
+      setLoadingRoles(false)
     }
   }
 
   const handleFlagTicket = async () => {
-    if (!selectedStaffId) return
+    if (selectedRoles.length === 0) return
     
     try {
       const res = await fetch(`/api/admin/tickets/${ticketId}/flag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          staffId: selectedStaffId, 
+          roles: selectedRoles, 
           message: flagMessage || undefined 
         }),
       })
 
       if (res.ok) {
         setShowFlagModal(false)
-        setSelectedStaffId('')
+        setSelectedRoles([])
         setFlagMessage('')
         fetchTicket()
         fetchFlags()
@@ -515,7 +507,7 @@ export default function AdminTicketPage() {
                 <button
                   onClick={() => {
                     setShowFlagModal(true)
-                    fetchAvailableStaff()
+                    fetchAvailableRoles()
                   }}
                   className="btn-secondary text-sm py-2"
                 >
@@ -869,62 +861,47 @@ export default function AdminTicketPage() {
       {/* Modal Sinalizar */}
       {showFlagModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="card max-w-md w-full">
             <h2 className="text-xl font-bold mb-4">🚩 Sinalizar Ticket</h2>
             <p className="text-gray-400 mb-4">
-              Selecione um atendente para sinalizar este ticket. Apenas atendentes com acesso à categoria são listados.
+              Selecione os cargos para sinalizar este ticket. Apenas cargos com acesso à categoria são listados.
             </p>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Atendente</label>
-              {loadingStaff ? (
+              <label className="block text-sm font-medium mb-2">Cargos</label>
+              {loadingRoles ? (
                 <div className="flex items-center justify-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary"></div>
-                  <span className="ml-2 text-gray-400">Carregando atendentes...</span>
+                  <span className="ml-2 text-gray-400">Carregando cargos...</span>
                 </div>
-              ) : availableStaff.length === 0 ? (
+              ) : availableRoles.length === 0 ? (
                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-400">
-                  Nenhum atendente disponível para esta categoria.
+                  Nenhum cargo disponível para esta categoria.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto border border-border rounded-lg p-2">
-                  {availableStaff.map((s) => (
+                <div className="space-y-2 border border-border rounded-lg p-2">
+                  {availableRoles.map((role) => (
                     <label
-                      key={s.discordId}
+                      key={role.id}
                       className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedStaffId === s.discordId
+                        selectedRoles.includes(role.id)
                           ? 'bg-primary/20 border border-primary'
                           : 'hover:bg-card border border-transparent'
                       }`}
                     >
                       <input
-                        type="radio"
-                        name="staffSelect"
-                        value={s.discordId}
-                        checked={selectedStaffId === s.discordId}
-                        onChange={(e) => setSelectedStaffId(e.target.value)}
-                        className="sr-only"
+                        type="checkbox"
+                        checked={selectedRoles.includes(role.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRoles([...selectedRoles, role.id])
+                          } else {
+                            setSelectedRoles(selectedRoles.filter(r => r !== role.id))
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                       />
-                      {s.avatar ? (
-                        <Image
-                          src={s.avatar}
-                          alt={s.name}
-                          width={32}
-                          height={32}
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                          {s.name[0]}
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium">{s.name}</p>
-                        <p className="text-xs text-primary">{ROLE_LABELS[s.role] || s.role}</p>
-                      </div>
-                      {selectedStaffId === s.discordId && (
-                        <span className="text-primary">✓</span>
-                      )}
+                      <span className="font-medium">{role.name}</span>
                     </label>
                   ))}
                 </div>
@@ -951,7 +928,7 @@ export default function AdminTicketPage() {
                     <li key={flag.id} className="flex items-center gap-2">
                       <span>→</span>
                       <span>{flag.flaggedBy.name} sinalizou para</span>
-                      <span className="font-medium text-white">{flag.flaggedTo.name}</span>
+                      <span className="font-medium text-white">{ROLE_LABELS[flag.flaggedToRole] || flag.flaggedToRole}</span>
                     </li>
                   ))}
                 </ul>
@@ -962,14 +939,14 @@ export default function AdminTicketPage() {
               <button 
                 onClick={handleFlagTicket} 
                 className="btn-primary flex-1"
-                disabled={!selectedStaffId}
+                disabled={selectedRoles.length === 0}
               >
-                Sinalizar
+                Sinalizar {selectedRoles.length > 0 && `(${selectedRoles.length})`}
               </button>
               <button 
                 onClick={() => {
                   setShowFlagModal(false)
-                  setSelectedStaffId('')
+                  setSelectedRoles([])
                   setFlagMessage('')
                 }} 
                 className="btn-secondary"

@@ -44,12 +44,7 @@ interface Ticket {
     role: string
     avatar?: string
   }
-  flaggedTo?: {
-    id: string
-    name: string
-    role: string
-    avatar?: string
-  }
+  flaggedToRole?: string
   flagMessage?: string
   flaggedAt?: string
 }

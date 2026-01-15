@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 
-// Listar tickets sinalizados para o atendente atual
+// Listar tickets sinalizados para o cargo do atendente atual
 export async function GET() {
   try {
     const session = await getAdminSession()
@@ -11,10 +11,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    // Buscar sinalizações não resolvidas para o atendente atual
+    // Buscar sinalizações não resolvidas para o cargo do atendente atual
     const flags = await prisma.ticketFlag.findMany({
       where: {
-        flaggedToId: session.staffId,
+        flaggedToRole: session.role as any,
         resolved: false,
       },
       include: {
@@ -36,9 +36,6 @@ export async function GET() {
         flaggedBy: {
           select: { id: true, name: true, role: true, avatar: true },
         },
-        flaggedTo: {
-          select: { id: true, name: true, role: true, avatar: true },
-        },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -49,7 +46,7 @@ export async function GET() {
       .map(flag => ({
         ...flag.ticket,
         flaggedBy: flag.flaggedBy,
-        flaggedTo: flag.flaggedTo,
+        flaggedToRole: flag.flaggedToRole,
         flagMessage: flag.message,
         flaggedAt: flag.createdAt,
       }))
