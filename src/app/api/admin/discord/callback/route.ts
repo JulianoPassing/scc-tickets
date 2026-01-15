@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { signAdminToken } from '@/lib/admin-auth'
 import { DISCORD_GUILD_ID, getHighestRole, hasAllowedRole } from '@/lib/discord-roles'
+import { prisma } from '@/lib/prisma'
 
 interface DiscordUser {
   id: string
@@ -103,18 +104,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/admin?error=no_role`)
     }
 
-    // 6. Criar token JWT
+    // 6. Criar ou atualizar Staff no banco de dados
     const displayName = member.nick || user.global_name || user.username
+    const avatarUrl = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : ''
+    
+    // Usar upsert para criar ou atualizar o staff baseado no Discord ID
+    const staff = await prisma.staff.upsert({
+      where: { username: user.id }, // Usar Discord ID como username único
+      update: {
+        name: displayName,
+        role: systemRole as any,
+        active: true,
+      },
+      create: {
+        username: user.id, // Discord ID como username
+        password: '', // Não usado mais (login via Discord)
+        name: displayName,
+        role: systemRole as any,
+        active: true,
+      },
+    })
+
+    // 7. Criar token JWT
     const token = await signAdminToken({
-      staffId: user.id, // Usando Discord ID como staffId
+      staffId: staff.id, // Usar o ID do banco de dados
       username: user.username,
       name: displayName,
       role: systemRole,
       discordId: user.id,
-      avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : '',
+      avatar: avatarUrl,
     })
 
-    // 7. Salvar cookie e redirecionar
+    // 8. Salvar cookie e redirecionar
     const cookieStore = await cookies()
     cookieStore.set('admin_token', token, {
       httpOnly: true,
