@@ -49,11 +49,13 @@ export async function GET(request: NextRequest) {
     )
 
     if (!membersResponse.ok) {
-      console.error('Erro ao buscar membros:', await membersResponse.text())
-      return NextResponse.json({ error: 'Erro ao buscar membros' }, { status: 500 })
+      const errorText = await membersResponse.text()
+      console.error('Erro ao buscar membros:', errorText)
+      return NextResponse.json({ error: 'Erro ao buscar membros', details: errorText }, { status: 500 })
     }
 
     const members: GuildMember[] = await membersResponse.json()
+    console.log(`Encontrados ${members.length} membros no servidor`)
 
     // Filtrar membros que:
     // 1. Têm algum cargo de staff
@@ -126,6 +128,9 @@ export async function GET(request: NextRequest) {
         return a.name.localeCompare(b.name)
       })
 
+    console.log(`Atendentes disponíveis para categoria ${category}:`, availableStaff.length)
+    console.log('Atendentes:', availableStaff.map(s => `${s.name} (${s.role})`))
+    
     return NextResponse.json({ staff: availableStaff })
   } catch (error) {
     console.error('Erro ao listar atendentes:', error)
