@@ -2,14 +2,14 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { CATEGORIES, getCategoryInfo } from '@/lib/categories'
 
-export default function NewTicketPage() {
+function NewTicketContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -195,5 +195,17 @@ export default function NewTicketPage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function NewTicketPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+      </div>
+    }>
+      <NewTicketContent />
+    </Suspense>
   )
 }
