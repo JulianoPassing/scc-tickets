@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     const timestamp = request.headers.get('x-signature-timestamp')
     
     if (!signature || !timestamp) {
+      console.error('Headers de assinatura ausentes')
       return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
     }
 
@@ -20,15 +21,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Configuração inválida' }, { status: 500 })
     }
 
-    // Verificar assinatura
-    const isValid = verifyKey(body, signature, timestamp, publicKey)
-    
-    if (!isValid) {
-      console.error('Assinatura Discord inválida')
-      return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
+    // Verificar assinatura (para PING do Discord, a validação é obrigatória)
+    try {
+      const isValid = verifyKey(body, signature, timestamp, publicKey)
+      
+      if (!isValid) {
+        console.error('Assinatura Discord inválida')
+        console.error('Body length:', body.length)
+        console.error('Signature:', signature?.substring(0, 20) + '...')
+        console.error('Timestamp:', timestamp)
+        return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
+      }
+    } catch (verifyError) {
+      console.error('Erro ao verificar assinatura:', verifyError)
+      return NextResponse.json({ error: 'Erro na verificação' }, { status: 401 })
     }
 
     const interaction = JSON.parse(body)
+    console.log('Interação recebida tipo:', interaction.type)
 
     // Verificar se é um comando
     if (interaction.type === 2) { // APPLICATION_COMMAND
