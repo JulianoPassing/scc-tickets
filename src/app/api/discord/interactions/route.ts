@@ -22,7 +22,11 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('📥 Request recebido em /api/discord/interactions')
+  const startTime = Date.now()
+  console.log('[DISCORD] 📥 POST request recebido em /api/discord/interactions')
+  console.log('[DISCORD] URL:', request.url)
+  console.log('[DISCORD] Method:', request.method)
+  
   try {
     // Validar assinatura do Discord
     const signature = request.headers.get('x-signature-ed25519')
@@ -53,27 +57,40 @@ export async function POST(request: NextRequest) {
 
     // Verificar assinatura (para PING do Discord, a validação é obrigatória)
     try {
+      console.log('[DISCORD] 🔐 Verificando assinatura...')
       const isValid = verifyKey(body, signature, timestamp, publicKey)
       
       if (!isValid) {
-        console.error('Assinatura Discord inválida')
-        console.error('Body length:', body.length)
-        console.error('Signature:', signature?.substring(0, 20) + '...')
-        console.error('Timestamp:', timestamp)
+        console.error('[DISCORD] ❌ Assinatura Discord inválida')
+        console.error('[DISCORD] Body length:', body.length)
+        console.error('[DISCORD] Signature:', signature?.substring(0, 20) + '...')
+        console.error('[DISCORD] Timestamp:', timestamp)
         return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
       }
-    } catch (verifyError) {
-      console.error('Erro ao verificar assinatura:', verifyError)
+      console.log('[DISCORD] ✅ Assinatura válida!')
+    } catch (verifyError: any) {
+      console.error('[DISCORD] ❌ Erro ao verificar assinatura:', verifyError)
+      console.error('[DISCORD] Erro stack:', verifyError?.stack)
       return NextResponse.json({ error: 'Erro na verificação' }, { status: 401 })
     }
 
-    const interaction = JSON.parse(body)
-    console.log('Interação recebida tipo:', interaction.type)
+    console.log('[DISCORD] 📝 Fazendo parse do JSON...')
+    let interaction
+    try {
+      interaction = JSON.parse(body)
+      console.log('[DISCORD] ✅ JSON parseado com sucesso')
+    } catch (parseError: any) {
+      console.error('[DISCORD] ❌ Erro ao fazer parse do JSON:', parseError)
+      console.error('[DISCORD] Body:', body)
+      return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
+    }
+    
+    console.log('[DISCORD] Interação recebida tipo:', interaction.type)
     
     // PING do Discord (resposta imediata para validação do endpoint)
     if (interaction.type === 1) {
-      console.log('✅ Respondendo PING do Discord')
-      return NextResponse.json(
+      console.log('[DISCORD] ✅ Respondendo PING do Discord')
+      const pingResponse = NextResponse.json(
         { type: 1 },
         {
           status: 200,
@@ -82,6 +99,8 @@ export async function POST(request: NextRequest) {
           },
         }
       )
+      console.log('[DISCORD] ✅ PING respondido em', Date.now() - startTime, 'ms')
+      return pingResponse
     }
     
     console.log('Command name:', interaction.data?.name)
@@ -92,10 +111,10 @@ export async function POST(request: NextRequest) {
       console.log('Processando comando:', commandName)
 
       if (commandName === 'sistema-ticket') {
-        console.log('Comando sistema-ticket reconhecido, enviando resposta')
+        console.log('[DISCORD] ✅ Comando sistema-ticket reconhecido, enviando resposta')
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://scc-tickets.vercel.app'
         
-        return NextResponse.json({
+        const response = NextResponse.json({
           type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
           data: {
             embeds: [
@@ -141,14 +160,22 @@ Ou acesse: ${baseUrl}/tickets
             ],
           },
         })
+        
+        console.log('[DISCORD] ✅ Resposta enviada em', Date.now() - startTime, 'ms')
+        return response
       }
     }
 
     // Comando não reconhecido
     console.warn('⚠️ Comando não reconhecido, tipo:', interaction.type)
     return NextResponse.json({ error: 'Comando não reconhecido' }, { status: 400 })
-  } catch (error) {
-    console.error('Erro ao processar interação Discord:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[DISCORD] ❌ Erro ao processar interação Discord:', error)
+    console.error('[DISCORD] Stack:', error?.stack)
+    console.error('[DISCORD] Mensagem:', error?.message)
+    return NextResponse.json(
+      { error: 'Erro interno', message: error?.message },
+      { status: 500 }
+    )
   }
 }
