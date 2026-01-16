@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyKey } from 'discord-interactions'
 
 // Handler para interações do Discord (comandos slash)
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200 })
+}
+
 export async function POST(request: NextRequest) {
   console.log('📥 Request recebido em /api/discord/interactions')
   try {
@@ -17,12 +21,14 @@ export async function POST(request: NextRequest) {
     console.log('✅ Headers de assinatura presentes')
     const body = await request.text()
     console.log('📦 Body recebido, tamanho:', body.length)
-    const publicKey = process.env.DISCORD_PUBLIC_KEY
+    let publicKey = process.env.DISCORD_PUBLIC_KEY?.trim()
     
     if (!publicKey) {
       console.error('DISCORD_PUBLIC_KEY não configurado')
       return NextResponse.json({ error: 'Configuração inválida' }, { status: 500 })
     }
+    
+    console.log('🔑 Public Key configurada, tamanho:', publicKey.length)
 
     // Verificar assinatura (para PING do Discord, a validação é obrigatória)
     try {
@@ -42,6 +48,13 @@ export async function POST(request: NextRequest) {
 
     const interaction = JSON.parse(body)
     console.log('Interação recebida tipo:', interaction.type)
+    
+    // PING do Discord (resposta imediata para validação do endpoint)
+    if (interaction.type === 1) {
+      console.log('✅ Respondendo PING do Discord')
+      return NextResponse.json({ type: 1 }, { status: 200 })
+    }
+    
     console.log('Command name:', interaction.data?.name)
 
     // Verificar se é um comando
@@ -102,11 +115,8 @@ Ou acesse: ${baseUrl}/tickets
       }
     }
 
-    // PING do Discord
-    if (interaction.type === 1) {
-      return NextResponse.json({ type: 1 })
-    }
-
+    // Comando não reconhecido
+    console.warn('⚠️ Comando não reconhecido, tipo:', interaction.type)
     return NextResponse.json({ error: 'Comando não reconhecido' }, { status: 400 })
   } catch (error) {
     console.error('Erro ao processar interação Discord:', error)
