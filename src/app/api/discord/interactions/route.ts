@@ -87,7 +87,7 @@ Ou acesse: ${baseUrl}/tickets
     }
 
     // PING do Discord
-    if (body.type === 1) {
+    if (interaction.type === 1) {
       return NextResponse.json({ type: 1 })
     }
 
