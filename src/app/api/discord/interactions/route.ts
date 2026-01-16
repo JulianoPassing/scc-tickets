@@ -112,19 +112,17 @@ export async function POST(request: NextRequest) {
     // PING do Discord (resposta imediata para validação do endpoint)
     if (interaction.type === 1) {
       console.log('[DISCORD] ✅ Respondendo PING do Discord')
-      // Resposta mínima e rápida para PING
-      const pingResponse = new NextResponse(
-        JSON.stringify({ type: 1 }),
+      // Resposta EXATA que o Discord espera: apenas {"type":1} sem espaços extras
+      // Usar Response diretamente para garantir formato exato
+      return new Response(
+        '{"type":1}',
         {
           status: 200,
           headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
+            'Content-Type': 'application/json; charset=utf-8',
           },
         }
       )
-      console.log('[DISCORD] ✅ PING respondido em', Date.now() - startTime, 'ms')
-      return pingResponse
     }
     
     console.log('Command name:', interaction.data?.name)
