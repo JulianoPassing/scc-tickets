@@ -3,17 +3,20 @@ import { verifyKey } from 'discord-interactions'
 
 // Handler para interações do Discord (comandos slash)
 export async function POST(request: NextRequest) {
+  console.log('📥 Request recebido em /api/discord/interactions')
   try {
     // Validar assinatura do Discord
     const signature = request.headers.get('x-signature-ed25519')
     const timestamp = request.headers.get('x-signature-timestamp')
     
     if (!signature || !timestamp) {
-      console.error('Headers de assinatura ausentes')
+      console.error('❌ Headers de assinatura ausentes')
       return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
     }
 
+    console.log('✅ Headers de assinatura presentes')
     const body = await request.text()
+    console.log('📦 Body recebido, tamanho:', body.length)
     const publicKey = process.env.DISCORD_PUBLIC_KEY
     
     if (!publicKey) {
@@ -39,12 +42,15 @@ export async function POST(request: NextRequest) {
 
     const interaction = JSON.parse(body)
     console.log('Interação recebida tipo:', interaction.type)
+    console.log('Command name:', interaction.data?.name)
 
     // Verificar se é um comando
     if (interaction.type === 2) { // APPLICATION_COMMAND
       const commandName = interaction.data?.name
+      console.log('Processando comando:', commandName)
 
       if (commandName === 'sistema-ticket') {
+        console.log('Comando sistema-ticket reconhecido, enviando resposta')
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://scc-tickets.vercel.app'
         
         return NextResponse.json({
