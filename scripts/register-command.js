@@ -1,8 +1,10 @@
 // Script para registrar o comando slash no Discord
 // Execute: node scripts/register-command.js
 
+require('dotenv').config()
+
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID
-const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN
+const BOT_TOKEN = (process.env.DISCORD_BOT_TOKEN || '').replace(/^"|"$/g, '') // Remove aspas se existirem
 const GUILD_ID = '1046404063287332936' // ID do servidor (opcional - para comando de servidor específico)
 
 async function registerCommand() {

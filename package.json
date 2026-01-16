@@ -16,6 +16,7 @@
     "bcryptjs": "^2.4.3",
     "discord-interactions": "^4.4.0",
     "discord.js": "^14.16.3",
+    "dotenv": "^17.2.3",
     "jose": "^5.9.6",
     "next": "^14.2.18",
     "next-auth": "^4.24.10",
