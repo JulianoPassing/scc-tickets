@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyKey } from 'discord-interactions'
 
 // Handler para interações do Discord (comandos slash)
-export async function GET() {
+export async function GET(request: NextRequest) {
   // Resposta para validação do endpoint pelo Discord
-  return NextResponse.json({ message: 'Discord Interactions Endpoint' }, { status: 200 })
+  console.log('📥 GET request recebido em /api/discord/interactions')
+  console.log('Headers:', Object.fromEntries(request.headers.entries()))
+  return NextResponse.json(
+    { message: 'Discord Interactions Endpoint' },
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  )
 }
 
 export async function OPTIONS() {
@@ -24,8 +34,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Headers de assinatura presentes')
+    console.log('Signature:', signature?.substring(0, 20) + '...')
+    console.log('Timestamp:', timestamp)
+    
+    // IMPORTANTE: Ler o body como texto bruto, sem parsing
     const body = await request.text()
     console.log('📦 Body recebido, tamanho:', body.length)
+    console.log('Body preview:', body.substring(0, 100))
+    
     let publicKey = process.env.DISCORD_PUBLIC_KEY?.trim()
     
     if (!publicKey) {
@@ -57,7 +73,15 @@ export async function POST(request: NextRequest) {
     // PING do Discord (resposta imediata para validação do endpoint)
     if (interaction.type === 1) {
       console.log('✅ Respondendo PING do Discord')
-      return NextResponse.json({ type: 1 }, { status: 200 })
+      return NextResponse.json(
+        { type: 1 },
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
     }
     
     console.log('Command name:', interaction.data?.name)
