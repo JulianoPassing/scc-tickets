@@ -11,6 +11,7 @@ export const DISCORD_ROLE_MAP: Record<string, string> = {
   '1226907937117569128': 'MODERADOR',     // Moderador
   '1226903187055972484': 'COORDENADOR',   // Coordenador
   '1046404063673192542': 'SUPORTE',       // Suporte
+  '1204393192284229692': 'AJUDANTE',      // Ajudante
 }
 
 // IDs de cargos que podem acessar o painel admin (todos os acima)
@@ -25,6 +26,7 @@ export const ROLE_PRIORITY: Record<string, number> = {
   'COORDENADOR': 60,
   'MODERADOR': 40,
   'SUPORTE': 20,
+  'AJUDANTE': 10,
 }
 
 // Função para obter o cargo mais alto de um usuário baseado nos IDs de cargo do Discord

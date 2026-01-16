@@ -87,6 +87,7 @@ interface AvailableRole {
 
 const ROLE_LABELS: Record<string, string> = {
   SUPORTE: 'Suporte',
+  AJUDANTE: 'Ajudante',
   MODERADOR: 'Moderador',
   COORDENADOR: 'Coordenador',
   COMMUNITY_MANAGER: 'Community Manager',

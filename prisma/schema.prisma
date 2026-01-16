@@ -45,6 +45,7 @@ model Staff {
 
 enum StaffRole {
   SUPORTE
+  AJUDANTE
   MODERADOR
   COORDENADOR
   COMMUNITY_MANAGER

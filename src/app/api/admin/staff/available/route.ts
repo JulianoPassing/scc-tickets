@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => {
         // Ordenar por prioridade (CEO/DEV primeiro)
-        const priorityOrder = ['CEO', 'DEV', 'COMMUNITY_MANAGER', 'COORDENADOR', 'MODERADOR', 'SUPORTE']
+        const priorityOrder = ['CEO', 'DEV', 'COMMUNITY_MANAGER', 'COORDENADOR', 'MODERADOR', 'SUPORTE', 'AJUDANTE']
         return priorityOrder.indexOf(a.id) - priorityOrder.indexOf(b.id)
       })
 
