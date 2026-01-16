@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyKey } from 'discord-interactions'
 
 // Handler para interações do Discord (comandos slash)
+export async function GET() {
+  // Resposta para validação do endpoint pelo Discord
+  return NextResponse.json({ message: 'Discord Interactions Endpoint' }, { status: 200 })
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, { status: 200 })
 }
