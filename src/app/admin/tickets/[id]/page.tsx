@@ -308,6 +308,29 @@ export default function AdminTicketPage() {
     }
   }
 
+  const handleExportTranscript = async () => {
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}/export`)
+      if (!res.ok) {
+        alert('Erro ao exportar transcript')
+        return
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ticket-${ticket?.ticketNumber}-transcript.html`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Erro ao exportar transcript:', error)
+      alert('Erro ao exportar transcript')
+    }
+  }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -488,42 +511,51 @@ export default function AdminTicketPage() {
             </div>
 
             {/* Ações */}
-            {ticket.status !== 'FECHADO' && (
-              <div className="flex items-center gap-2">
-                {!ticket.assignedTo && (
-                  <button onClick={handleAssignToMe} className="btn-secondary text-sm py-2">
-                    🫡 Assumir
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportTranscript}
+                className="btn-secondary text-sm py-2"
+                title="Exportar transcript HTML"
+              >
+                📄 Exportar
+              </button>
+              {ticket.status !== 'FECHADO' && (
+                <>
+                  {!ticket.assignedTo && (
+                    <button onClick={handleAssignToMe} className="btn-secondary text-sm py-2">
+                      🫡 Assumir
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setNewSubject(ticket.subject)
+                      setShowRenameModal(true)
+                    }}
+                    className="btn-secondary text-sm py-2"
+                  >
+                    ✏️ Renomear
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    setNewSubject(ticket.subject)
-                    setShowRenameModal(true)
-                  }}
-                  className="btn-secondary text-sm py-2"
-                >
-                  ✏️ Renomear
-                </button>
-                <button
-                  onClick={() => {
-                    setShowFlagModal(true)
-                    fetchAvailableRoles()
-                  }}
-                  className="btn-secondary text-sm py-2"
-                >
-                  🚩 Sinalizar
-                </button>
-                <button onClick={handleNotifyUser} className="btn-secondary text-sm py-2">
-                  🔔 Avisar
-                </button>
-                <button
-                  onClick={() => setShowCloseModal(true)}
-                  className="btn-danger text-sm py-2"
-                >
-                  🔒 Fechar
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => {
+                      setShowFlagModal(true)
+                      fetchAvailableRoles()
+                    }}
+                    className="btn-secondary text-sm py-2"
+                  >
+                    🚩 Sinalizar
+                  </button>
+                  <button onClick={handleNotifyUser} className="btn-secondary text-sm py-2">
+                    🔔 Avisar
+                  </button>
+                  <button
+                    onClick={() => setShowCloseModal(true)}
+                    className="btn-danger text-sm py-2"
+                  >
+                    🔒 Fechar
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>

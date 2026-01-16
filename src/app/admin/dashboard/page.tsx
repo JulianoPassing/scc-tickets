@@ -66,6 +66,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'ativos' | 'resolvidos' | 'sinalizados'>('ativos')
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [showExportModal, setShowExportModal] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -123,6 +124,34 @@ export default function AdminDashboardPage() {
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' })
     router.push('/admin')
+  }
+
+  const handleExportAll = async (statusFilter: 'all' | 'abertos' | 'fechados' = 'all') => {
+    try {
+      setShowExportModal(false)
+      const res = await fetch(`/api/admin/tickets/export-all?status=${statusFilter}`)
+      if (!res.ok) {
+        alert('Erro ao exportar tickets')
+        return
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      
+      // Nome do arquivo baseado no filtro
+      const statusLabel = statusFilter === 'abertos' ? 'abertos' : statusFilter === 'fechados' ? 'fechados' : 'todos'
+      a.download = `tickets-${statusLabel}-${new Date().toISOString().split('T')[0]}.zip`
+      
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Erro ao exportar tickets:', error)
+      alert('Erro ao exportar tickets')
+    }
   }
 
   if (loading) {
@@ -252,9 +281,18 @@ export default function AdminDashboardPage() {
 
       {/* Main Content */}
       <main className="ml-64 p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-400">Bem-vindo, {staff.name}!</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-gray-400">Bem-vindo, {staff.name}!</p>
+          </div>
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="btn-secondary flex items-center gap-2"
+            title="Exportar tickets em ZIP"
+          >
+            📦 Exportar
+          </button>
         </div>
 
         {/* Stats */}
@@ -494,6 +532,51 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Modal de Exportação */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">📦 Exportar Tickets</h2>
+            <p className="text-gray-400 mb-6">
+              Escolha quais tickets deseja exportar. Todos serão salvos em um arquivo ZIP.
+            </p>
+            
+            <div className="space-y-3 mb-6">
+              <button
+                onClick={() => handleExportAll('all')}
+                className="w-full btn-primary text-left flex items-center justify-between"
+              >
+                <span>📋 Todos os Tickets</span>
+                <span className="text-xs opacity-75">Todos os status</span>
+              </button>
+              
+              <button
+                onClick={() => handleExportAll('abertos')}
+                className="w-full btn-secondary text-left flex items-center justify-between"
+              >
+                <span>🟢 Apenas Abertos</span>
+                <span className="text-xs opacity-75">Abertos, Em Atendimento, Aguardando</span>
+              </button>
+              
+              <button
+                onClick={() => handleExportAll('fechados')}
+                className="w-full btn-secondary text-left flex items-center justify-between"
+              >
+                <span>🔴 Apenas Fechados</span>
+                <span className="text-xs opacity-75">Apenas tickets resolvidos</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowExportModal(false)}
+              className="w-full btn-secondary"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
