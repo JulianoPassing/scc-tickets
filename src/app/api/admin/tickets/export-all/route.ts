@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
     const statusLabel = statusFilter === 'abertos' ? 'abertos' : statusFilter === 'fechados' ? 'fechados' : 'todos'
     const filename = `tickets-${statusLabel}-${new Date().toISOString().split('T')[0]}.zip`
 
-    // Retornar ZIP
-    return new NextResponse(zipBuffer, {
+    // Retornar ZIP (converter Buffer para Uint8Array)
+    return new NextResponse(new Uint8Array(zipBuffer), {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="${filename}"`,
