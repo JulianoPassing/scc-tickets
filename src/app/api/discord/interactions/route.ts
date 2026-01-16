@@ -1,13 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyKey } from 'discord-interactions'
 
 // Handler para interações do Discord (comandos slash)
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // Validar assinatura do Discord
+    const signature = request.headers.get('x-signature-ed25519')
+    const timestamp = request.headers.get('x-signature-timestamp')
+    
+    if (!signature || !timestamp) {
+      return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
+    }
+
+    const body = await request.text()
+    const publicKey = process.env.DISCORD_PUBLIC_KEY
+    
+    if (!publicKey) {
+      console.error('DISCORD_PUBLIC_KEY não configurado')
+      return NextResponse.json({ error: 'Configuração inválida' }, { status: 500 })
+    }
+
+    // Verificar assinatura
+    const isValid = verifyKey(body, signature, timestamp, publicKey)
+    
+    if (!isValid) {
+      console.error('Assinatura Discord inválida')
+      return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
+    }
+
+    const interaction = JSON.parse(body)
 
     // Verificar se é um comando
-    if (body.type === 2) { // APPLICATION_COMMAND
-      const commandName = body.data?.name
+    if (interaction.type === 2) { // APPLICATION_COMMAND
+      const commandName = interaction.data?.name
 
       if (commandName === 'sistema-ticket') {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://scc-tickets.vercel.app'
