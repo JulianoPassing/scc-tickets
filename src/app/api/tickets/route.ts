@@ -64,18 +64,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Categoria inválida' }, { status: 400 })
     }
 
-    // Verificar se já tem ticket aberto na categoria
+    // Verificar se já tem ticket aberto ou em atendimento na categoria
+    // Só permite criar novo ticket quando o anterior estiver FECHADO
     const existingTicket = await prisma.ticket.findFirst({
       where: {
         userId: session.user.id,
         category: category as TicketCategory,
-        status: { not: 'FECHADO' },
+        status: {
+          in: [TicketStatus.ABERTO, TicketStatus.EM_ATENDIMENTO, TicketStatus.AGUARDANDO_RESPOSTA],
+        },
       },
     })
 
     if (existingTicket) {
+      const categoryInfo = {
+        SUPORTE: 'Suporte',
+        BUGS: 'Reportar Bugs',
+        DENUNCIAS: 'Denúncias',
+        DOACOES: 'Doações',
+        BOOST: 'Boost',
+        CASAS: 'Casas',
+        REVISAO: 'Revisão',
+      }[category] || category
+
       return NextResponse.json(
-        { error: `Você já possui um ticket aberto na categoria ${category}` },
+        { 
+          error: `Você já possui um ticket aberto ou em atendimento na categoria "${categoryInfo}". Feche o ticket anterior antes de abrir um novo na mesma categoria.` 
+        },
         { status: 400 }
       )
     }
