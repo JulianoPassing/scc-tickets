@@ -56,7 +56,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
-    return NextResponse.json({ ticket })
+    // Buscar o último atendente que enviou mensagem no ticket
+    const lastStaffMessage = await prisma.message.findFirst({
+      where: {
+        ticketId: id,
+        staffId: { not: null },
+      },
+      include: {
+        staff: {
+          select: { id: true, name: true, role: true, avatar: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Criar objeto de resposta com o último atendente
+    const ticketResponse = {
+      ...ticket,
+      lastAttendant: lastStaffMessage?.staff || null,
+    }
+
+    return NextResponse.json({ ticket: ticketResponse })
   } catch (error) {
     console.error('Erro ao buscar ticket:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

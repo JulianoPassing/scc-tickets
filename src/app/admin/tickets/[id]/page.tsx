@@ -58,6 +58,12 @@ interface Ticket {
     name: string
     role: string
   }
+  lastAttendant?: {
+    id: string
+    name: string
+    role: string
+    avatar?: string
+  } | null
   messages: Message[]
 }
 
@@ -821,7 +827,12 @@ export default function AdminTicketPage() {
                 <span className="text-gray-400">Atualizado em:</span>{' '}
                 {new Date(ticket.updatedAt).toLocaleString('pt-BR')}
               </p>
-              {ticket.assignedTo && (
+              {ticket.lastAttendant ? (
+                <p>
+                  <span className="text-gray-400">Atendente:</span>{' '}
+                  {ticket.lastAttendant.name}
+                </p>
+              ) : ticket.assignedTo && (
                 <p>
                   <span className="text-gray-400">Atendente:</span>{' '}
                   {ticket.assignedTo.name}
