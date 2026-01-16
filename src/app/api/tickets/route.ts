@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingTicket) {
-      const categoryInfo = {
+      const categoryLabels: Record<TicketCategory, string> = {
         SUPORTE: 'Suporte',
         BUGS: 'Reportar Bugs',
         DENUNCIAS: 'Denúncias',
@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
         BOOST: 'Boost',
         CASAS: 'Casas',
         REVISAO: 'Revisão',
-      }[category] || category
+      }
+      const categoryInfo = categoryLabels[category as TicketCategory] || category
 
       return NextResponse.json(
         { 
