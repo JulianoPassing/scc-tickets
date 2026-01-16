@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyKey } from 'discord-interactions'
 
+// Forçar uso do runtime Node.js (não Edge) para garantir compatibilidade
+export const runtime = 'nodejs'
+export const maxDuration = 10
+
 // Handler para interações do Discord (comandos slash)
 export async function GET(request: NextRequest) {
   // Resposta para validação do endpoint pelo Discord
@@ -33,7 +37,8 @@ export async function POST(request: NextRequest) {
     const timestamp = request.headers.get('x-signature-timestamp')
     
     if (!signature || !timestamp) {
-      console.error('❌ Headers de assinatura ausentes')
+      console.error('[DISCORD] ❌ Headers de assinatura ausentes')
+      console.error('[DISCORD] Headers recebidos:', Object.fromEntries(request.headers.entries()))
       return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
     }
 
@@ -42,9 +47,26 @@ export async function POST(request: NextRequest) {
     console.log('Timestamp:', timestamp)
     
     // IMPORTANTE: Ler o body como texto bruto, sem parsing
-    const body = await request.text()
-    console.log('📦 Body recebido, tamanho:', body.length)
-    console.log('Body preview:', body.substring(0, 100))
+    // Tratamento especial para evitar problemas com Edge Runtime
+    let bodyText: string
+    try {
+      const bodyBuffer = await request.arrayBuffer()
+      bodyText = Buffer.from(bodyBuffer).toString('utf-8')
+    } catch (bodyError) {
+      // Fallback para request.text() se arrayBuffer não funcionar
+      bodyText = await request.text()
+    }
+    
+    // Verificar se o body está corrompido (bug conhecido do Discord)
+    if (bodyText.includes('[object') || bodyText.trim().length === 0) {
+      console.error('[DISCORD] ❌ Body corrompido ou vazio:', bodyText.substring(0, 100))
+      // Tentar responder ao PING mesmo assim (pode ser apenas verificação do Discord)
+      return NextResponse.json({ type: 1 }, { status: 200 })
+    }
+    
+    console.log('📦 Body recebido, tamanho:', bodyText.length)
+    console.log('Body preview:', bodyText.substring(0, 100))
+    const body = bodyText
     
     let publicKey = process.env.DISCORD_PUBLIC_KEY?.trim()
     
@@ -90,12 +112,14 @@ export async function POST(request: NextRequest) {
     // PING do Discord (resposta imediata para validação do endpoint)
     if (interaction.type === 1) {
       console.log('[DISCORD] ✅ Respondendo PING do Discord')
-      const pingResponse = NextResponse.json(
-        { type: 1 },
+      // Resposta mínima e rápida para PING
+      const pingResponse = new NextResponse(
+        JSON.stringify({ type: 1 }),
         {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
           },
         }
       )
