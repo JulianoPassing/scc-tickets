@@ -36,6 +36,12 @@ interface Ticket {
     role: string
     avatar?: string
   }
+  lastAttendant?: {
+    id: string
+    name: string
+    role: string
+    avatar?: string
+  } | null
   messages: { content: string }[]
   // Campos para tickets sinalizados
   flaggedBy?: {
@@ -506,22 +512,43 @@ export default function AdminDashboardPage() {
                       ) : (
                         <p>{new Date(ticket.updatedAt).toLocaleString('pt-BR')}</p>
                       )}
-                      {ticket.assignedTo && (
+                      {(ticket.lastAttendant || ticket.assignedTo) && (
                         <div className="flex items-center gap-1 justify-end mt-1">
-                          {ticket.assignedTo.avatar ? (
-                            <Image
-                              src={ticket.assignedTo.avatar}
-                              alt={ticket.assignedTo.name}
-                              width={16}
-                              height={16}
-                              className="rounded-full"
-                            />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] text-white">
-                              {ticket.assignedTo.name[0]}
-                            </div>
-                          )}
-                          <span className="text-primary text-xs">{ticket.assignedTo.name}</span>
+                          {ticket.lastAttendant ? (
+                            <>
+                              {ticket.lastAttendant.avatar ? (
+                                <Image
+                                  src={ticket.lastAttendant.avatar}
+                                  alt={ticket.lastAttendant.name}
+                                  width={16}
+                                  height={16}
+                                  className="rounded-full"
+                                />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] text-white">
+                                  {ticket.lastAttendant.name[0]}
+                                </div>
+                              )}
+                              <span className="text-primary text-xs">{ticket.lastAttendant.name}</span>
+                            </>
+                          ) : ticket.assignedTo ? (
+                            <>
+                              {ticket.assignedTo.avatar ? (
+                                <Image
+                                  src={ticket.assignedTo.avatar}
+                                  alt={ticket.assignedTo.name}
+                                  width={16}
+                                  height={16}
+                                  className="rounded-full"
+                                />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] text-white">
+                                  {ticket.assignedTo.name[0]}
+                                </div>
+                              )}
+                              <span className="text-primary text-xs">{ticket.assignedTo.name}</span>
+                            </>
+                          ) : null}
                         </div>
                       )}
                     </div>

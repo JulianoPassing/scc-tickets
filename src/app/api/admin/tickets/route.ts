@@ -50,10 +50,41 @@ export async function GET(request: NextRequest) {
       ],
     })
 
-    // Filtrar por permissão do cargo
-    const filteredTickets = tickets.filter((ticket) =>
-      canAccessCategory(session.role, ticket.category)
-    )
+    // Buscar o último atendente que respondeu em cada ticket
+    const ticketIds = tickets.map(t => t.id)
+    const lastStaffMessages = await prisma.message.findMany({
+      where: {
+        ticketId: { in: ticketIds },
+        staffId: { not: null },
+      },
+      select: {
+        ticketId: true,
+        staff: {
+          select: { id: true, name: true, role: true, avatar: true },
+        },
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Agrupar por ticketId e pegar apenas a última mensagem de cada ticket
+    const lastAttendantsMap = new Map<string, typeof lastStaffMessages[0]>()
+    for (const msg of lastStaffMessages) {
+      if (!lastAttendantsMap.has(msg.ticketId)) {
+        lastAttendantsMap.set(msg.ticketId, msg)
+      }
+    }
+
+    // Filtrar por permissão do cargo e adicionar último atendente
+    const filteredTickets = tickets
+      .filter((ticket) => canAccessCategory(session.role, ticket.category))
+      .map((ticket) => {
+        const lastMessage = lastAttendantsMap.get(ticket.id)
+        return {
+          ...ticket,
+          lastAttendant: lastMessage?.staff || null,
+        }
+      })
 
     return NextResponse.json({ tickets: filteredTickets })
   } catch (error) {
