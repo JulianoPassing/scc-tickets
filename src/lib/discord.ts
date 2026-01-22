@@ -78,6 +78,7 @@ export function createTicketNotificationEmbed(
     message?: string
     staffName?: string
     url: string
+    evaluationLink?: string
   }
 ): DiscordEmbed {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -102,13 +103,14 @@ export function createTicketNotificationEmbed(
     case 'ticket_closed':
       return {
         title: '🔒 Ticket Fechado',
-        description: `Seu ticket foi fechado pela equipe.`,
+        description: `Seu ticket foi fechado por **${data.staffName || 'Staff'}**.\n\n⭐ **Sua avaliação é muito importante para nós!** Por favor, avalie seu atendimento.`,
         color: 0xff6b6b,
         fields: [
           { name: 'Ticket', value: `#${data.ticketNumber}`, inline: true },
           { name: 'Categoria', value: data.category, inline: true },
           { name: 'Fechado por', value: data.staffName || 'Staff', inline: true },
-          { name: '📝 Avaliar', value: `[Avalie seu atendimento](${baseUrl}/avaliar)`, inline: false },
+          { name: '⭐ Avaliar Atendimento', value: data.evaluationLink ? `[Clique aqui para avaliar](${data.evaluationLink})` : 'Link de avaliação não disponível', inline: false },
+          { name: '🔗 Ver Ticket', value: `[Acessar ticket](${data.url})`, inline: false },
         ],
         footer: { text: 'StreetCarClub • Obrigado pelo contato!' },
         timestamp: new Date().toISOString(),

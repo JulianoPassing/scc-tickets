@@ -120,7 +120,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updateData.closedAt = new Date()
       updateData.closedReason = closedReason || 'Fechado pelo atendente'
 
-      // Enviar DM ao usuário
+      // Criar mensagem do sistema pedindo avaliação
+      const evaluationLink = 'https://discord.com/channels/1046404063287332936/1394727160991842324'
+      await prisma.message.create({
+        data: {
+          ticketId: id,
+          content: `🔒 **Ticket encerrado por ${session.name}**\n\n⭐ Sua avaliação é muito importante para nós! Por favor, avalie seu atendimento:\n${evaluationLink}\n\nObrigado por utilizar nosso sistema de suporte!`,
+          isSystemMessage: true,
+        },
+      })
+
+      // Enviar DM ao usuário pedindo avaliação
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       await sendDiscordDM(
         ticket.user.discordId,
@@ -130,6 +140,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           subject: ticket.subject,
           staffName: session.name,
           url: `${baseUrl}/tickets/${ticket.id}`,
+          evaluationLink: evaluationLink,
         })
       )
     }
