@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { getCategoryInfo } from '@/lib/categories'
+import { getCategoryInfo, CATEGORIES } from '@/lib/categories'
+import { ROLE_PERMISSIONS } from '@/lib/permissions'
 
 interface Staff {
   staffId: string
@@ -124,9 +125,11 @@ export default function AdminTicketPage() {
   // Modais
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showFlagModal, setShowFlagModal] = useState(false)
   const [closeReason, setCloseReason] = useState('')
   const [newSubject, setNewSubject] = useState('')
+  const [newCategory, setNewCategory] = useState('')
   
   // Sinalização
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
@@ -436,9 +439,40 @@ export default function AdminTicketPage() {
       if (res.ok) {
         setShowRenameModal(false)
         fetchTicket()
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao renomear ticket')
       }
     } catch (error) {
       console.error('Erro ao renomear ticket:', error)
+      alert('Erro ao renomear ticket')
+    }
+  }
+
+  const handleChangeCategory = async () => {
+    if (!newCategory || newCategory === ticket?.category) {
+      setShowCategoryModal(false)
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: newCategory }),
+      })
+
+      if (res.ok) {
+        setShowCategoryModal(false)
+        fetchTicket()
+        alert('Categoria alterada com sucesso!')
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao alterar categoria')
+      }
+    } catch (error) {
+      console.error('Erro ao alterar categoria:', error)
+      alert('Erro ao alterar categoria')
     }
   }
 
@@ -541,6 +575,15 @@ export default function AdminTicketPage() {
                     className="btn-secondary text-sm py-2"
                   >
                     ✏️ Renomear
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNewCategory(ticket.category)
+                      setShowCategoryModal(true)
+                    }}
+                    className="btn-secondary text-sm py-2"
+                  >
+                    📁 Alterar Categoria
                   </button>
                   <button
                     onClick={() => {
@@ -826,10 +869,24 @@ export default function AdminTicketPage() {
           <div className="card">
             <h3 className="font-bold mb-4">Detalhes do Ticket</h3>
             <div className="space-y-3 text-sm">
-              <p>
-                <span className="text-gray-400">Categoria:</span>{' '}
-                {categoryInfo?.emoji} {categoryInfo?.name}
-              </p>
+              <div className="flex items-center justify-between">
+                <p>
+                  <span className="text-gray-400">Categoria:</span>{' '}
+                  {categoryInfo?.emoji} {categoryInfo?.name}
+                </p>
+                {ticket.status !== 'FECHADO' && (
+                  <button
+                    onClick={() => {
+                      setNewCategory(ticket.category)
+                      setShowCategoryModal(true)
+                    }}
+                    className="text-xs text-primary hover:underline"
+                    title="Alterar categoria"
+                  >
+                    Alterar
+                  </button>
+                )}
+              </div>
               <p>
                 <span className="text-gray-400">Status:</span>{' '}
                 <span className={`badge ${STATUS_LABELS[ticket.status]?.class}`}>
@@ -912,6 +969,50 @@ export default function AdminTicketPage() {
                 Renomear
               </button>
               <button onClick={() => setShowRenameModal(false)} className="btn-secondary">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Alterar Categoria */}
+      {showCategoryModal && staff && ticket && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Alterar Categoria</h2>
+            <p className="text-gray-400 mb-4 text-sm">
+              Selecione a nova categoria para este ticket. Apenas categorias que você tem acesso são exibidas.
+            </p>
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="input mb-4 w-full"
+            >
+              {CATEGORIES.filter((cat) => 
+                ROLE_PERMISSIONS[staff.role]?.includes(cat.id)
+              ).map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.emoji} {cat.name}
+                </option>
+              ))}
+            </select>
+            {newCategory !== ticket.category && (
+              <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-sm text-yellow-400">
+                ⚠️ A categoria será alterada de <strong>{getCategoryInfo(ticket.category as any)?.name}</strong> para <strong>{getCategoryInfo(newCategory as any)?.name}</strong>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={handleChangeCategory} className="btn-primary flex-1">
+                Alterar Categoria
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCategoryModal(false)
+                  setNewCategory('')
+                }} 
+                className="btn-secondary"
+              >
                 Cancelar
               </button>
             </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { sendDiscordDM, createTicketNotificationEmbed } from '@/lib/discord'
+import { TicketCategory } from '@prisma/client'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -94,7 +95,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json()
-    const { status, subject, assignedToId, closedReason } = body
+    const { status, subject, assignedToId, closedReason, category } = body
 
     const ticket = await prisma.ticket.findUnique({
       where: { id },
@@ -105,9 +106,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Ticket não encontrado' }, { status: 404 })
     }
 
-    // Verificar permissão
+    // Verificar permissão para a categoria atual
     if (!canAccessCategory(session.role, ticket.category)) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+    }
+
+    // Se estiver alterando a categoria, verificar permissão para a nova categoria
+    if (category && category !== ticket.category) {
+      if (!canAccessCategory(session.role, category)) {
+        return NextResponse.json({ 
+          error: 'Você não tem permissão para acessar esta categoria' 
+        }, { status: 403 })
+      }
     }
 
     const updateData: any = {}
@@ -115,7 +125,31 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (status) updateData.status = status
     if (subject) updateData.subject = subject
     if (assignedToId !== undefined) updateData.assignedToId = assignedToId || null
+    if (category) updateData.category = category as TicketCategory
     
+    // Se a categoria foi alterada, criar mensagem do sistema
+    if (category && category !== ticket.category) {
+      const categoryNames: Record<string, string> = {
+        SUPORTE: 'Suporte',
+        BUGS: 'Reportar Bugs',
+        DENUNCIAS: 'Denúncias',
+        DOACOES: 'Doações',
+        BOOST: 'Boost',
+        CASAS: 'Casas',
+        REVISAO: 'Revisão',
+      }
+      const oldCategoryName = categoryNames[ticket.category] || ticket.category
+      const newCategoryName = categoryNames[category] || category
+      
+      await prisma.message.create({
+        data: {
+          ticketId: id,
+          content: `📁 **Categoria alterada por ${session.name}**\n\nCategoria alterada de **${oldCategoryName}** para **${newCategoryName}**.`,
+          isSystemMessage: true,
+        },
+      })
+    }
+
     if (status === 'FECHADO') {
       updateData.closedAt = new Date()
       updateData.closedReason = closedReason || 'Fechado pelo atendente'
@@ -136,7 +170,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ticket.user.discordId,
         createTicketNotificationEmbed('ticket_closed', {
           ticketNumber: ticket.ticketNumber,
-          category: ticket.category,
+          category: category || ticket.category,
           subject: ticket.subject,
           staffName: session.name,
           url: `${baseUrl}/tickets/${ticket.id}`,
