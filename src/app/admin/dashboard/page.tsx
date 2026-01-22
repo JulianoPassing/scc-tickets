@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -73,6 +73,7 @@ export default function AdminDashboardPage() {
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [showExportModal, setShowExportModal] = useState(false)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -82,6 +83,30 @@ export default function AdminDashboardPage() {
     if (staff) {
       fetchTickets()
       fetchFlaggedTickets()
+    }
+  }, [staff, filter, categoryFilter, activeTab])
+
+  // Auto-refresh para detectar novos tickets
+  useEffect(() => {
+    if (!staff) return
+
+    // Limpar intervalo anterior se existir
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+    }
+
+    // Intervalo de 10 segundos para verificar novos tickets
+    refreshIntervalRef.current = setInterval(() => {
+      fetchTickets()
+      if (activeTab === 'sinalizados') {
+        fetchFlaggedTickets()
+      }
+    }, 10000) // 10 segundos
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+      }
     }
   }, [staff, filter, categoryFilter, activeTab])
 

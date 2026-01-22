@@ -1,6 +1,6 @@
 -- ============================================
 -- COMANDO SIMPLES: Deletar todos os tickets fechados
--- Copie e cole este comando no Neon Database SQL Editor
+-- Copie e cole este comando no SQL Editor do Supabase
 -- ============================================
 
 -- Primeiro, veja quantos serão deletados:

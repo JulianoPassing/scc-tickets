@@ -116,8 +116,14 @@ Recomendamos usar **Vercel Postgres** ou **Supabase**:
 
 **Supabase:**
 1. Crie um projeto em [supabase.com](https://supabase.com)
-2. Copie a Connection String (URI)
-3. Adicione como DATABASE_URL na Vercel
+2. Vá em Settings > Database
+3. Copie a Connection String (URI) e substitua `[YOUR-PASSWORD]` pela senha do projeto
+4. Adicione `?sslmode=require` no final da connection string
+5. Adicione como DATABASE_URL na Vercel
+6. Execute `npx prisma db push` para aplicar o schema
+7. Execute `npm run db:seed` para criar dados iniciais
+
+📖 **Guia completo**: Veja [docs/SETUP-SUPABASE.md](docs/SETUP-SUPABASE.md) para instruções detalhadas
 
 ### 3. Discord OAuth
 
