@@ -101,7 +101,9 @@ function NewTicketContent() {
                 />
               )}
               <div>
-                <p className="font-semibold">{session.user?.name}</p>
+                <p className="font-semibold">
+                  {session.user?.displayName || session.user?.username || session.user?.name}
+                </p>
                 <p className="text-sm text-gray-400">Discord ID: {session.user?.discordId}</p>
               </div>
             </div>

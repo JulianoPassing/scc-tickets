@@ -7,6 +7,8 @@ declare module 'next-auth' {
       id: string
       discordId: string
       avatar: string | null
+      username?: string
+      displayName?: string | null
     } & DefaultSession['user']
   }
 }

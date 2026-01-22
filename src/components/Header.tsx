@@ -46,7 +46,9 @@ export function Header() {
                       className="rounded-full"
                     />
                   )}
-                  <span className="text-sm text-gray-300">{session.user?.name}</span>
+                  <span className="text-sm text-gray-300">
+                    {session.user?.displayName || session.user?.username || session.user?.name}
+                  </span>
                 </div>
                 <button
                   onClick={() => signOut()}

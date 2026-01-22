@@ -110,6 +110,10 @@ export const authOptions: NextAuthOptions = {
           session.user.id = dbUser.id
           session.user.discordId = dbUser.discordId
           session.user.avatar = dbUser.avatar
+          session.user.username = dbUser.username
+          session.user.displayName = dbUser.displayName
+          // Usar displayName (nome do servidor) como name principal, fallback para username
+          session.user.name = dbUser.displayName || dbUser.username
         }
       }
       return session
