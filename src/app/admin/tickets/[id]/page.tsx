@@ -651,7 +651,24 @@ export default function AdminTicketPage() {
                           {new Date(msg.createdAt).toLocaleString('pt-BR')}
                         </span>
                       </div>
-                      <p className="text-gray-200 whitespace-pre-wrap break-words">{msg.content}</p>
+                      <div className="text-gray-200 whitespace-pre-wrap break-words">
+                        {msg.content.split(/(https?:\/\/[^\s]+)/g).map((part, i) => {
+                          if (part.match(/^https?:\/\//)) {
+                            return (
+                              <a
+                                key={i}
+                                href={part}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {part}
+                              </a>
+                            )
+                          }
+                          return <span key={i}>{part}</span>
+                        })}
+                      </div>
                       {msg.attachments.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {msg.attachments.map((att) => (
