@@ -72,6 +72,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'ativos' | 'resolvidos' | 'sinalizados'>('ativos')
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [showExportModal, setShowExportModal] = useState(false)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -84,7 +85,7 @@ export default function AdminDashboardPage() {
       fetchTickets()
       fetchFlaggedTickets()
     }
-  }, [staff, filter, categoryFilter, activeTab])
+  }, [staff, filter, categoryFilter, activeTab, searchQuery])
 
   // Auto-refresh para detectar novos tickets
   useEffect(() => {
@@ -132,6 +133,7 @@ export default function AdminDashboardPage() {
       const params = new URLSearchParams()
       if (filter !== 'all') params.append('status', filter)
       if (categoryFilter !== 'all') params.append('category', categoryFilter)
+      if (searchQuery.trim()) params.append('search', searchQuery.trim())
       if (params.toString()) url += `?${params.toString()}`
 
       const res = await fetch(url)
@@ -446,6 +448,27 @@ export default function AdminDashboardPage() {
                 </option>
               ))}
             </select>
+
+            {/* Campo de Busca */}
+            <div className="relative flex-1 min-w-[250px]">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por título, nome do usuário ou Discord ID..."
+                className="input w-full pl-10"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  title="Limpar busca"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -558,20 +581,20 @@ export default function AdminDashboardPage() {
                             </>
                           ) : ticket.assignedTo ? (
                             <>
-                              {ticket.assignedTo.avatar ? (
-                                <Image
-                                  src={ticket.assignedTo.avatar}
-                                  alt={ticket.assignedTo.name}
-                                  width={16}
-                                  height={16}
-                                  className="rounded-full"
-                                />
-                              ) : (
-                                <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] text-white">
-                                  {ticket.assignedTo.name[0]}
-                                </div>
-                              )}
-                              <span className="text-primary text-xs">{ticket.assignedTo.name}</span>
+                          {ticket.assignedTo.avatar ? (
+                            <Image
+                              src={ticket.assignedTo.avatar}
+                              alt={ticket.assignedTo.name}
+                              width={16}
+                              height={16}
+                              className="rounded-full"
+                            />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[8px] text-white">
+                              {ticket.assignedTo.name[0]}
+                            </div>
+                          )}
+                          <span className="text-primary text-xs">{ticket.assignedTo.name}</span>
                             </>
                           ) : null}
                         </div>

@@ -15,12 +15,32 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') as TicketStatus | null
     const category = searchParams.get('category')
+    const search = searchParams.get('search')
+
+    // Construir condições de busca
+    const searchConditions = search
+      ? {
+          OR: [
+            { subject: { contains: search, mode: 'insensitive' as const } },
+            {
+              user: {
+                OR: [
+                  { displayName: { contains: search, mode: 'insensitive' as const } },
+                  { username: { contains: search, mode: 'insensitive' as const } },
+                  { discordId: { contains: search, mode: 'insensitive' as const } },
+                ],
+              },
+            },
+          ],
+        }
+      : {}
 
     // Buscar todos os tickets e filtrar por permissão
     const tickets = await prisma.ticket.findMany({
       where: {
         ...(status && { status }),
         ...(category && { category: category as any }),
+        ...searchConditions,
       },
       select: {
         id: true,
