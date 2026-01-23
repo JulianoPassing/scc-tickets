@@ -34,7 +34,7 @@
     flex-wrap: nowrap;
     gap: 0.5rem;
     min-height: 64px;
-    overflow: hidden;
+    overflow: visible; /* Mudar de hidden para visible para não cortar botões */
   }
 
   /* Logo e nome - reduzir tamanho */
@@ -44,8 +44,16 @@
     max-width: 40%;
   }
 
+  /* Reduzir ainda mais o texto do nome no mobile */
+  header .flex.items-center.gap-3:first-child .text-xl {
+    font-size: 0.65rem;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   header .text-xl {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -53,8 +61,8 @@
 
   /* Logo menor */
   header img.rounded-full[alt="SCC Logo"] {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 
   /* Navegação - esconder no mobile */
@@ -62,20 +70,44 @@
     display: none !important;
   }
 
+  /* Garantir que o botão de login seja visível */
+  header a.btn-primary {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 1;
+  }
+
   /* Container do usuário/botão login */
   header > div > div > div:last-child {
     flex-shrink: 0;
     min-width: fit-content;
-    max-width: 60%;
+    max-width: 60%; /* Espaço suficiente para o botão */
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: visible;
   }
 
-  /* Botão "Entrar com Discord" */
+  /* Botão "Entrar com Discord" - garantir que apareça */
   header .btn-primary {
     font-size: 0.7rem;
     padding: 0.5rem 0.625rem;
     white-space: nowrap;
     min-width: auto;
-    max-width: 100%;
+    max-width: none;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0;
+    overflow: visible;
+  }
+
+  /* Garantir que o container do botão não oculte o botão */
+  header .flex.items-center.gap-4:last-child {
+    display: flex !important;
+    visibility: visible !important;
   }
 
   /* Quando logado - informações do usuário */
