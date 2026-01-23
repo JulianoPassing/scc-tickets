@@ -1,0 +1,609 @@
+/* ============================================
+   MOBILE STYLES - Responsividade para Smartphones
+   Aplica apenas em telas menores que 768px
+   ============================================ */
+
+@media (max-width: 767px) {
+  /* ============================================
+     GERAL
+     ============================================ */
+  
+  /* Ajustar padding geral */
+  .max-w-7xl,
+  .max-w-5xl,
+  .max-w-3xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* ============================================
+     HEADER (Usuário)
+     ============================================ */
+  
+  header.bg-card {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  header .flex.items-center.justify-between {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  header nav.flex.items-center.gap-6 {
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  header .text-xl {
+    font-size: 1rem;
+  }
+
+  /* Avatar e nome do usuário no header */
+  header .flex.items-center.gap-3 {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-end;
+  }
+
+  header .text-sm {
+    font-size: 0.75rem;
+  }
+
+  /* ============================================
+     ADMIN DASHBOARD - SIDEBAR
+     ============================================ */
+  
+  /* Esconder sidebar fixa no mobile */
+  aside.fixed.left-0.top-0 {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Mostrar sidebar quando ativa */
+  aside.fixed.left-0.top-0.mobile-active {
+    left: 0;
+  }
+
+  /* Overlay quando sidebar está aberta */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+  }
+
+  /* Botão hambúrguer para abrir sidebar */
+  .mobile-menu-button {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-size: 1.25rem;
+  }
+
+  .mobile-menu-button:hover {
+    background: var(--border);
+  }
+
+  /* Ajustar main content quando sidebar está oculta */
+  main.ml-64,
+  main[class*="ml-64"] {
+    margin-left: 0 !important;
+    padding: 1rem;
+    padding-top: 4rem; /* Espaço para o botão hambúrguer */
+  }
+
+  /* ============================================
+     ADMIN DASHBOARD - CONTEÚDO
+     ============================================ */
+  
+  /* Estatísticas - empilhar em coluna */
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4 {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Cards de estatísticas */
+  .card {
+    padding: 1rem;
+  }
+
+  /* Título do dashboard */
+  .text-3xl {
+    font-size: 1.5rem;
+  }
+
+  /* Abas - scroll horizontal */
+  .flex.gap-4.border-b {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .flex.gap-4.border-b::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flex.gap-4.border-b button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* Filtros - wrap e scroll */
+  .flex.flex-wrap.gap-4 {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .flex.flex-wrap.gap-4 button,
+  .flex.flex-wrap.gap-4 select {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Campo de busca - largura total */
+  .relative.flex-1.min-w-\[250px\] {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  /* Lista de tickets - ajustar cards */
+  .card.space-y-4 > div {
+    padding: 1rem;
+  }
+
+  /* ============================================
+     ADMIN TICKET PAGE - HEADER
+     ============================================ */
+  
+  header.bg-card.border-b.sticky {
+    padding: 1rem;
+  }
+
+  header .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  header .flex.items-center.gap-4 {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* Botões de ação - wrap e tamanho menor */
+  header .flex.items-center.gap-2 {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  header .btn-secondary,
+  header .btn-danger {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+  }
+
+  /* Título do ticket */
+  header h1.font-bold {
+    font-size: 1rem;
+    word-break: break-word;
+  }
+
+  /* ============================================
+     ADMIN TICKET PAGE - LAYOUT
+     ============================================ */
+  
+  /* Layout flex - empilhar em coluna */
+  .flex.gap-6,
+  div[class*="flex"][class*="gap-6"],
+  .max-w-7xl.mx-auto.px-4.py-6.flex.gap-6 {
+    flex-direction: column !important;
+    gap: 1rem;
+  }
+
+  /* Chat - largura total */
+  .flex-1 {
+    width: 100%;
+  }
+
+  /* Sidebar de informações - largura total */
+  aside.w-80,
+  aside[class*="w-80"] {
+    width: 100% !important;
+  }
+
+  /* Mensagens do chat */
+  .space-y-4 > div {
+    padding: 0.75rem;
+  }
+
+  .space-y-4 .flex.items-start.gap-3 {
+    gap: 0.75rem;
+  }
+
+  /* Avatar nas mensagens */
+  .flex-shrink-0 img,
+  .flex-shrink-0 div {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Texto das mensagens */
+  .text-gray-200 {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Input de mensagem */
+  .textarea {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+  }
+
+  /* Botão de enviar */
+  .btn-primary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* ============================================
+     USER TICKETS PAGE
+     ============================================ */
+  
+  /* Header da página */
+  .flex.flex-col.sm\:flex-row.items-start {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .text-3xl.font-bold {
+    font-size: 1.5rem;
+  }
+
+  /* Botão novo ticket */
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Filtros */
+  .flex.flex-wrap.gap-2 button {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Cards de tickets */
+  .card.cursor-pointer {
+    padding: 1rem;
+  }
+
+  .card .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  /* ============================================
+     USER TICKET CHAT PAGE
+     ============================================ */
+  
+  /* Header do ticket */
+  .card.mb-6 {
+    padding: 1rem;
+  }
+
+  .card .flex.flex-col.sm\:flex-row {
+    flex-direction: column;
+  }
+
+  .text-4xl {
+    font-size: 2rem;
+  }
+
+  .text-xl.font-bold {
+    font-size: 1.125rem;
+  }
+
+  /* Chat */
+  .card.flex-1.flex.flex-col {
+    min-height: 400px;
+    padding: 1rem;
+  }
+
+  .max-h-\[500px\] {
+    max-height: 60vh;
+  }
+
+  /* ============================================
+     NEW TICKET PAGE
+     ============================================ */
+  
+  .card {
+    padding: 1rem;
+  }
+
+  .text-2xl.font-bold {
+    font-size: 1.25rem;
+  }
+
+  /* Formulário */
+  form.space-y-6 > div {
+    margin-bottom: 1rem;
+  }
+
+  /* Select de categoria */
+  select.input {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+  }
+
+  /* ============================================
+     MODAIS
+     ============================================ */
+  
+  .fixed.inset-0 {
+    padding: 1rem;
+  }
+
+  .card.max-w-md {
+    max-width: 100%;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .card.max-w-md h2 {
+    font-size: 1.125rem;
+  }
+
+  /* Inputs e textareas em modais */
+  .card.max-w-md .input,
+  .card.max-w-md .textarea {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+  }
+
+  /* Botões em modais */
+  .card.max-w-md .btn-primary,
+  .card.max-w-md .btn-secondary,
+  .card.max-w-md .btn-danger {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* ============================================
+     BANNER DE SINALIZAÇÃO
+     ============================================ */
+  
+  .bg-red-500\/10 {
+    padding: 0.75rem 1rem;
+  }
+
+  .bg-red-500\/10 .flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  /* ============================================
+     BOTÕES E INTERAÇÕES
+     ============================================ */
+  
+  /* Aumentar área de toque */
+  button,
+  a.btn-primary,
+  a.btn-secondary {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Links clicáveis */
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* ============================================
+     IMAGENS E MÍDIAS
+     ============================================ */
+  
+  /* Imagens responsivas */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Preview de imagens no chat */
+  .flex.flex-wrap.gap-2 img {
+    max-width: 80px;
+    max-height: 80px;
+  }
+
+  /* ============================================
+     SCROLL E OVERFLOW
+     ============================================ */
+  
+  /* Scroll suave */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Tabelas scrolláveis */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ============================================
+     ESPAÇAMENTOS
+     ============================================ */
+  
+  /* Reduzir espaçamentos grandes */
+  .py-8,
+  .py-6 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .mb-8,
+  .mb-6 {
+    margin-bottom: 1rem;
+  }
+
+  .gap-6 {
+    gap: 1rem;
+  }
+
+  /* ============================================
+     TEXTO
+     ============================================ */
+  
+  /* Ajustar tamanhos de texto */
+  .text-sm {
+    font-size: 0.8125rem;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+  }
+
+  /* Quebra de linha em textos longos */
+  .break-words {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* ============================================
+     FOOTER
+     ============================================ */
+  
+  footer {
+    padding: 1.5rem 1rem;
+    text-align: center;
+  }
+
+  footer .text-sm {
+    font-size: 0.75rem;
+  }
+
+  footer .flex.flex-col.sm\:flex-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* ============================================
+     UTILITÁRIOS ADICIONAIS
+     ============================================ */
+  
+  /* Garantir que elementos não ultrapassem a largura */
+  * {
+    max-width: 100%;
+  }
+
+  /* Ajustar tabelas para scroll horizontal */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Melhorar legibilidade em telas pequenas */
+  code {
+    font-size: 0.75rem;
+    word-break: break-all;
+  }
+
+  /* Ajustar badges para mobile */
+  .badge {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* Ajustar espaçamento em listas */
+  ul, ol {
+    padding-left: 1.25rem;
+  }
+
+  /* Melhorar área de toque em elementos interativos */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  /* Ajustar select para mobile */
+  select {
+    font-size: 16px; /* Evita zoom automático no iOS */
+  }
+
+  /* Ajustar inputs para mobile */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px; /* Evita zoom automático no iOS */
+  }
+}
+
+/* ============================================
+   TABLETS (768px - 1024px)
+   ============================================ */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Ajustes intermediários para tablets */
+  
+    main.ml-64,
+  main[class*="ml-64"] {
+    margin-left: 0 !important;
+    padding: 1.5rem;
+  }
+
+  aside.fixed.left-0.top-0 {
+    width: 240px;
+  }
+
+  .grid.grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .flex.gap-6 {
+    gap: 1.5rem;
+  }
+}

@@ -74,6 +74,7 @@ export default function AdminDashboardPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [showExportModal, setShowExportModal] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -227,8 +228,25 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Overlay para fechar sidebar no mobile */}
+      {sidebarOpen && (
+        <div 
+          className="sidebar-overlay active"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Botão hambúrguer para mobile */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="mobile-menu-button lg:hidden"
+        aria-label="Toggle menu"
+      >
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border p-4 flex flex-col">
+      <aside className={`fixed left-0 top-0 h-full w-64 bg-card border-r border-border p-4 flex flex-col ${sidebarOpen ? 'mobile-active' : ''}`}>
         <div className="mb-8">
           <Image
             src="https://i.imgur.com/kHvmXj6.png"
@@ -242,6 +260,7 @@ export default function AdminDashboardPage() {
         <nav className="flex-1 space-y-2">
           <Link
             href="/admin/dashboard"
+            onClick={() => setSidebarOpen(false)}
             className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary font-medium"
           >
             📊 Dashboard
@@ -250,6 +269,7 @@ export default function AdminDashboardPage() {
             onClick={() => {
               setActiveTab('ativos')
               setFilter('all')
+              setSidebarOpen(false)
               document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left"
@@ -260,6 +280,7 @@ export default function AdminDashboardPage() {
             onClick={() => {
               setActiveTab('resolvidos')
               setFilter('all')
+              setSidebarOpen(false)
               document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left"
@@ -270,6 +291,7 @@ export default function AdminDashboardPage() {
             onClick={() => {
               setActiveTab('sinalizados')
               setFilter('all')
+              setSidebarOpen(false)
               document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-card text-gray-300 hover:text-white transition-colors text-left relative"

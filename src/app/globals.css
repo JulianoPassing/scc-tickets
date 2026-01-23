@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Importar estilos mobile */
+@import './mobile.css';
+
 :root {
   /* Cores principais */
   --primary: #EAF207;
