@@ -772,16 +772,16 @@ export default function AdminTicketPage() {
 
             {/* Input */}
             {ticket.status !== 'FECHADO' ? (
-              <form onSubmit={handleSendMessage} className="border-t border-border pt-4">
+              <form onSubmit={handleSendMessage} className="border-t border-border pt-2 pb-2 flex-shrink-0">
                 {/* Preview de imagens pendentes */}
                 {pendingImages.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  <div className="flex flex-wrap gap-2 mb-2">
                     {pendingImages.map((img, index) => (
                       <div key={index} className="relative group">
                         <img
                           src={img.preview}
                           alt="Preview"
-                          className="w-20 h-20 object-cover rounded-lg border border-border"
+                          className="w-16 h-16 object-cover rounded-lg border border-border"
                         />
                         <button
                           type="button"
@@ -795,14 +795,14 @@ export default function AdminTicketPage() {
                   </div>
                 )}
 
-                <div className="flex gap-3 mb-3">
+                <div className="flex gap-2 mb-2">
                   <div className="flex-1 relative">
                     <textarea
                       ref={textareaRef}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      className="textarea w-full pr-12"
-                      rows={3}
+                      className="textarea w-full pr-10 text-sm"
+                      rows={2}
                       placeholder="Digite sua resposta... (Ctrl+V para colar imagens)"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -814,10 +814,10 @@ export default function AdminTicketPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="absolute right-3 bottom-3 text-gray-400 hover:text-primary transition-colors"
+                      className="absolute right-2 bottom-2 text-gray-400 hover:text-primary transition-colors"
                       title="Anexar imagem"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </button>
@@ -832,8 +832,8 @@ export default function AdminTicketPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={notifyUser}
@@ -842,16 +842,16 @@ export default function AdminTicketPage() {
                       />
                       Notificar usuário via Discord
                     </label>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 hidden sm:inline">
                       Ctrl+V para colar imagens
                     </span>
                   </div>
                   <button
                     type="submit"
                     disabled={(!message.trim() && pendingImages.length === 0) || sending}
-                    className="btn-primary px-8 disabled:opacity-50"
+                    className="btn-primary px-6 py-2 text-sm disabled:opacity-50"
                   >
-                    {sending ? 'Enviando...' : 'Enviar Resposta'}
+                    {sending ? 'Enviando...' : 'Enviar'}
                   </button>
                 </div>
               </form>
