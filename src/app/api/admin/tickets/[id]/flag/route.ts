@@ -86,7 +86,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         create: {
           ticketId: id,
           flaggedById: session.staffId,
-          flaggedToRole: role,
+          flaggedToRole: role as StaffRole,
           message: message || null,
         },
         include: {
