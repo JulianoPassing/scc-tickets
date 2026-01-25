@@ -3,6 +3,7 @@ import { getAdminSession, canAccessCategoryWithCorretor } from '@/lib/admin-auth
 import { prisma } from '@/lib/prisma'
 import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/lib/permissions'
 import { hasCorretorRole } from '@/lib/discord-roles'
+import { StaffRole } from '@prisma/client'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         where: {
           ticketId_flaggedToRole: {
             ticketId: id,
-            flaggedToRole: role,
+            flaggedToRole: role as StaffRole,
           },
         },
         update: {

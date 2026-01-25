@@ -69,6 +69,7 @@ export default function AdminDashboardPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [flaggedTickets, setFlaggedTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
+  const [allowedCategories, setAllowedCategories] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState<'ativos' | 'resolvidos' | 'sinalizados'>('ativos')
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -83,6 +84,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (staff) {
+      fetchAllowedCategories()
       fetchTickets()
       fetchFlaggedTickets()
     }
@@ -125,6 +127,22 @@ export default function AdminDashboardPage() {
       router.push('/admin')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAllowedCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories')
+      if (res.ok) {
+        const data = await res.json()
+        setAllowedCategories(data.categories || [])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar categorias permitidas:', error)
+      // Fallback para ROLE_PERMISSIONS se a API falhar
+      if (staff) {
+        setAllowedCategories(ROLE_PERMISSIONS[staff.role] || [])
+      }
     }
   }
 
@@ -197,8 +215,6 @@ export default function AdminDashboardPage() {
   }
 
   if (!staff) return null
-
-  const allowedCategories = ROLE_PERMISSIONS[staff.role] || []
 
   // Separar tickets ativos e resolvidos
   const ticketsAtivos = tickets.filter((t) => t.status !== 'FECHADO')
