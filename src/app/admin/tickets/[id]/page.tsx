@@ -153,11 +153,7 @@ export default function AdminTicketPage() {
     if (staff && ticketId) {
       fetchTicket()
       fetchFlags()
-      const interval = setInterval(() => {
-        fetchTicket()
-        fetchFlags()
-      }, 10000)
-      return () => clearInterval(interval)
+      // Auto-refresh removido - apenas no dashboard
     }
   }, [staff, ticketId])
 
