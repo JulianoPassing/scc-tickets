@@ -140,8 +140,10 @@ export default function AdminTicketPage() {
   const [loadingRoles, setLoadingRoles] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const shouldAutoScrollRef = useRef(true)
 
   useEffect(() => {
     checkAuth()
@@ -159,8 +161,26 @@ export default function AdminTicketPage() {
     }
   }, [staff, ticketId])
 
+  // Detectar se o usuário está perto do final do scroll
   useEffect(() => {
-    scrollToBottom()
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100 // 100px de tolerância
+      shouldAutoScrollRef.current = isNearBottom
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Só fazer scroll automático se o usuário estiver perto do final
+  useEffect(() => {
+    if (shouldAutoScrollRef.current) {
+      scrollToBottom()
+    }
   }, [ticket?.messages])
 
   // Listener para colar imagens
@@ -342,7 +362,9 @@ export default function AdminTicketPage() {
   }
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (shouldAutoScrollRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
   const uploadImage = async (file: File): Promise<string | null> => {
@@ -525,10 +547,10 @@ export default function AdminTicketPage() {
   const categoryInfo = getCategoryInfo(ticket.category as any)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="w-full px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
@@ -613,7 +635,7 @@ export default function AdminTicketPage() {
       {/* Banner de sinalização */}
       {flaggedForMe && (
         <div className="bg-red-500/10 border-b border-red-500/30">
-          <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="w-full px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🚩</span>
@@ -639,11 +661,14 @@ export default function AdminTicketPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+      <div className="w-full flex-1 flex gap-6 px-4 pb-6 min-h-0 overflow-hidden">
         {/* Chat */}
-        <div className="flex-1">
-          <div className="card min-h-[600px] flex flex-col">
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]">
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="card flex-1 flex flex-col min-h-0">
+            <div 
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0"
+            >
               {ticket.messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -840,7 +865,7 @@ export default function AdminTicketPage() {
         </div>
 
         {/* Sidebar Info */}
-        <aside className="w-80 space-y-6">
+        <aside className="w-80 flex-shrink-0 space-y-6 overflow-y-auto max-h-full">
           <div className="card">
             <h3 className="font-bold mb-4">Informações do Usuário</h3>
             <div className="flex items-center gap-3 mb-4">
