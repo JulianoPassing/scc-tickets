@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
+import { getAdminSession, canAccessCategoryWithCorretor } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { sendDiscordDM, createTicketNotificationEmbed } from '@/lib/discord'
+import { hasCorretorRole } from '@/lib/discord-roles'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -26,8 +27,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Ticket não encontrado' }, { status: 404 })
     }
 
-    // Verificar permissão
-    if (!canAccessCategory(session.role, ticket.category)) {
+    // Verificar permissão (incluindo verificação de cargo Corretor para CASAS)
+    const hasCorretor = session.discordId ? await hasCorretorRole(session.discordId) : false
+    if (!await canAccessCategoryWithCorretor(session.role, ticket.category, session.discordId, hasCorretor)) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 

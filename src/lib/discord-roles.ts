@@ -52,3 +52,41 @@ export function getHighestRole(discordRoleIds: string[]): string | null {
 export function hasAllowedRole(discordRoleIds: string[]): boolean {
   return discordRoleIds.some(roleId => ALLOWED_ROLE_IDS.includes(roleId))
 }
+
+// ID do cargo "Corretor" no Discord
+export const CORRETOR_ROLE_ID = '1311023008495698081'
+
+// Função para verificar se um usuário tem o cargo "Corretor" no Discord
+export async function hasCorretorRole(discordId: string): Promise<boolean> {
+  const botToken = process.env.DISCORD_BOT_TOKEN
+  if (!botToken) {
+    console.error('DISCORD_BOT_TOKEN não configurado')
+    return false
+  }
+
+  try {
+    const memberResponse = await fetch(
+      `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${discordId}`,
+      {
+        headers: {
+          Authorization: `Bot ${botToken}`,
+        },
+      }
+    )
+
+    if (!memberResponse.ok) {
+      if (memberResponse.status === 404) {
+        // Usuário não está no servidor
+        return false
+      }
+      console.error('Erro ao obter membro do servidor:', memberResponse.status)
+      return false
+    }
+
+    const member = await memberResponse.json()
+    return member.roles?.includes(CORRETOR_ROLE_ID) || false
+  } catch (error) {
+    console.error('Erro ao verificar cargo Corretor:', error)
+    return false
+  }
+}

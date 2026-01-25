@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
 // Re-exportar permissões para manter compatibilidade com imports existentes nas API routes
-export { ROLE_PERMISSIONS, canAccessCategory } from './permissions'
+export { ROLE_PERMISSIONS, canAccessCategory, canAccessCategoryWithCorretor } from './permissions'
 
 const secret = new TextEncoder().encode(process.env.ADMIN_JWT_SECRET || 'default-secret-key')
 

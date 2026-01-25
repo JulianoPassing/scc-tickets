@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
+import { getAdminSession, canAccessCategoryWithCorretor } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/lib/permissions'
+import { hasCorretorRole } from '@/lib/discord-roles'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -33,24 +34,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Ticket não encontrado' }, { status: 404 })
     }
 
-    // Verificar permissão
-    if (!canAccessCategory(session.role, ticket.category)) {
+    // Verificar permissão (incluindo verificação de cargo Corretor para CASAS)
+    const hasCorretor = session.discordId ? await hasCorretorRole(session.discordId) : false
+    if (!await canAccessCategoryWithCorretor(session.role, ticket.category, session.discordId, hasCorretor)) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
     }
 
     // Verificar se os cargos selecionados têm acesso à categoria
-    const validRoles = roles.filter((role: string) => {
-      const permissions = ROLE_PERMISSIONS[role]
-      return permissions?.includes(ticket.category)
-    })
+    // Para CASAS, verificar também se têm cargo Corretor
+    const validRoles = await Promise.all(
+      roles.map(async (role: string) => {
+        if (ticket.category === 'CASAS') {
+          // Para CASAS: CM, DEV, CEO sempre têm acesso
+          if (role === 'COMMUNITY_MANAGER' || role === 'DEV' || role === 'CEO') {
+            return role
+          }
+          // Para outros cargos, precisam ter cargo Corretor (verificar via API)
+          // Como não temos o discordId dos outros cargos aqui, vamos permitir
+          // e deixar a verificação acontecer quando tentarem acessar
+          return role
+        } else {
+          const permissions = ROLE_PERMISSIONS[role]
+          return permissions?.includes(ticket.category) ? role : null
+        }
+      })
+    )
+    const filteredRoles = validRoles.filter(r => r !== null) as string[]
 
-    if (validRoles.length === 0) {
+    if (filteredRoles.length === 0) {
       return NextResponse.json({ error: 'Nenhum cargo selecionado tem acesso a esta categoria' }, { status: 400 })
     }
 
     // Criar sinalizações para cada cargo
     const createdFlags = []
-    for (const role of validRoles) {
+    for (const role of filteredRoles) {
       const flag = await prisma.ticketFlag.upsert({
         where: {
           ticketId_flaggedToRole: {
@@ -81,7 +98,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Adicionar mensagem de sistema no ticket
-    const roleNames = validRoles.map((r: string) => ROLE_LABELS[r] || r).join(', ')
+    const roleNames = filteredRoles.map((r: string) => ROLE_LABELS[r] || r).join(', ')
     await prisma.message.create({
       data: {
         ticketId: id,

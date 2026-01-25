@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdminSession, canAccessCategory } from '@/lib/admin-auth'
+import { getAdminSession, canAccessCategoryWithCorretor } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { TicketStatus } from '@prisma/client'
+import { hasCorretorRole } from '@/lib/discord-roles'
 
 // Listar tickets para admin (filtrado por cargo)
 export async function GET(request: NextRequest) {
@@ -95,18 +96,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filtrar por permissão do cargo e adicionar último atendente
-    const filteredTickets = tickets
-      .filter((ticket) => canAccessCategory(session.role, ticket.category))
-      .map((ticket) => {
-        const lastMessage = lastAttendantsMap.get(ticket.id)
-        return {
-          ...ticket,
-          lastAttendant: lastMessage?.staff || null,
-        }
-      })
+    // Verificar cargo Corretor uma vez para todos os tickets
+    const hasCorretor = session.discordId ? await hasCorretorRole(session.discordId) : false
 
-    return NextResponse.json({ tickets: filteredTickets })
+    // Filtrar por permissão do cargo e adicionar último atendente
+    const filteredTickets = await Promise.all(
+      tickets
+        .map(async (ticket) => {
+          const hasAccess = await canAccessCategoryWithCorretor(
+            session.role,
+            ticket.category,
+            session.discordId,
+            hasCorretor
+          )
+          if (!hasAccess) return null
+          
+          const lastMessage = lastAttendantsMap.get(ticket.id)
+          return {
+            ...ticket,
+            lastAttendant: lastMessage?.staff || null,
+          }
+        })
+    )
+    const validTickets = filteredTickets.filter(t => t !== null)
+
+    return NextResponse.json({ tickets: validTickets })
   } catch (error) {
     console.error('Erro ao listar tickets admin:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

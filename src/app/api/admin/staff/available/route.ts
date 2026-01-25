@@ -19,11 +19,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Determinar quais cargos têm acesso à categoria
+    // Para CASAS: CM, DEV, CEO sempre têm acesso, e SUPORTE/MODERADOR/AJUDANTE/COORDENADOR podem ter se tiverem cargo Corretor
     const availableRoles = Object.entries(ROLE_PERMISSIONS)
       .filter(([role, categories]) => {
         // Não pode sinalizar para o próprio cargo
         if (role === session.role) return false
-        // Verificar se o cargo tem acesso à categoria
+        
+        // Para CASAS, incluir CM, DEV, CEO, SUPORTE, MODERADOR, AJUDANTE e COORDENADOR
+        if (category === 'CASAS') {
+          return role === 'COMMUNITY_MANAGER' || 
+                 role === 'DEV' || 
+                 role === 'CEO' || 
+                 role === 'SUPORTE' || 
+                 role === 'MODERADOR' ||
+                 role === 'AJUDANTE' ||
+                 role === 'COORDENADOR'
+        }
+        
+        // Para outras categorias, verificar normalmente
         return categories.includes(category)
       })
       .map(([role]) => ({
