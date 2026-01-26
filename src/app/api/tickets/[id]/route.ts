@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         messages: {
           where: {
-            staffOnly: false, // Não mostrar mensagens exclusivas da staff
+            staffOnly: false,  // Usuário não vê mensagens exclusivas da staff
           },
           include: {
             user: {

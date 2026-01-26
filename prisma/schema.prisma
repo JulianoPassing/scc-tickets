@@ -118,7 +118,7 @@ model Message {
   staff         Staff?    @relation(fields: [staffId], references: [id])
   
   isSystemMessage Boolean @default(false)
-  staffOnly       Boolean @default(false) // Mensagem visível apenas para staff
+  staffOnly       Boolean @default(false)  // Se true, só staff pode ver esta mensagem
   
   attachments   Attachment[]
   

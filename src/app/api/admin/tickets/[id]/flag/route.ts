@@ -98,7 +98,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       createdFlags.push(flag)
     }
 
-    // Adicionar mensagem de sistema para o USUÁRIO (sem detalhes)
+    // Mensagem para o usuário (genérica, sem detalhes)
     await prisma.message.create({
       data: {
         ticketId: id,
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     })
 
-    // Adicionar mensagem de sistema para a STAFF (com detalhes completos)
+    // Mensagem para a staff (com detalhes completos)
     const roleNames = filteredRoles.map((r: string) => ROLE_LABELS[r] || r).join(', ')
     await prisma.message.create({
       data: {
