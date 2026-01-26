@@ -120,6 +120,20 @@ export async function GET(request: NextRequest) {
     )
     const validTickets = filteredTickets.filter(t => t !== null)
 
+    // Ordenar: Aberto > Aguardando Resposta > Em Atendimento > Fechado, depois por updatedAt
+    const statusPriority: Record<string, number> = {
+      'ABERTO': 1,
+      'AGUARDANDO_RESPOSTA': 2,
+      'EM_ATENDIMENTO': 3,
+      'FECHADO': 4,
+    }
+    validTickets.sort((a, b) => {
+      const priorityA = statusPriority[a!.status] || 5
+      const priorityB = statusPriority[b!.status] || 5
+      if (priorityA !== priorityB) return priorityA - priorityB
+      return new Date(b!.updatedAt).getTime() - new Date(a!.updatedAt).getTime()
+    })
+
     return NextResponse.json({ tickets: validTickets })
   } catch (error) {
     console.error('Erro ao listar tickets admin:', error)

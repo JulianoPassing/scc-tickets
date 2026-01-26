@@ -82,13 +82,25 @@ export default function AdminDashboardPage() {
     checkAuth()
   }, [])
 
+  // Buscar tickets quando filtros mudam (exceto searchQuery)
   useEffect(() => {
     if (staff) {
       fetchAllowedCategories()
       fetchTickets()
       fetchFlaggedTickets()
     }
-  }, [staff, filter, categoryFilter, activeTab, searchQuery])
+  }, [staff, filter, categoryFilter, activeTab])
+
+  // Debounce para busca - só busca após 500ms sem digitar
+  useEffect(() => {
+    if (!staff) return
+    
+    const debounceTimer = setTimeout(() => {
+      fetchTickets()
+    }, 500) // Espera 500ms após parar de digitar
+
+    return () => clearTimeout(debounceTimer)
+  }, [searchQuery])
 
   // Auto-refresh para detectar novos tickets
   useEffect(() => {
@@ -99,13 +111,13 @@ export default function AdminDashboardPage() {
       clearInterval(refreshIntervalRef.current)
     }
 
-    // Intervalo de 10 segundos para verificar novos tickets
+    // Intervalo de 60 segundos para verificar novos tickets
     refreshIntervalRef.current = setInterval(() => {
       fetchTickets()
       if (activeTab === 'sinalizados') {
         fetchFlaggedTickets()
       }
-    }, 10000) // 10 segundos
+    }, 60000) // 60 segundos
 
     return () => {
       if (refreshIntervalRef.current) {
