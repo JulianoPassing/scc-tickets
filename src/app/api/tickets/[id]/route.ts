@@ -46,7 +46,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Ticket não encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({ ticket })
+    // Verificar se há sinalizações ativas para este ticket (sem expor detalhes)
+    const flagCount = await prisma.ticketFlag.count({
+      where: { ticketId: id, resolved: false }
+    })
+
+    return NextResponse.json({ 
+      ticket,
+      isFlagged: flagCount > 0  // Apenas indica que foi sinalizado, sem expor mensagem
+    })
   } catch (error) {
     console.error('Erro ao buscar ticket:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

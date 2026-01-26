@@ -73,6 +73,7 @@ export default function TicketChatPage() {
   const ticketId = params.id as string
 
   const [ticket, setTicket] = useState<Ticket | null>(null)
+  const [isFlagged, setIsFlagged] = useState(false)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -155,6 +156,7 @@ export default function TicketChatPage() {
       }
       const data = await res.json()
       setTicket(data.ticket)
+      setIsFlagged(data.isFlagged || false)
     } catch (error) {
       console.error('Erro ao carregar ticket:', error)
     } finally {
@@ -281,6 +283,13 @@ export default function TicketChatPage() {
               <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <p className="text-sm text-red-400">
                   <strong>Motivo do fechamento:</strong> {ticket.closedReason}
+                </p>
+              </div>
+            )}
+            {isFlagged && ticket.status !== 'FECHADO' && (
+              <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-sm text-yellow-400">
+                  🚩 Este ticket foi sinalizado e está sendo analisado pela equipe.
                 </p>
               </div>
             )}
