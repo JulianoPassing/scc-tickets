@@ -74,6 +74,7 @@ export default function AdminDashboardPage() {
   const [filter, setFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [myTicketsOnly, setMyTicketsOnly] = useState<boolean>(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -89,7 +90,7 @@ export default function AdminDashboardPage() {
       fetchTickets()
       fetchFlaggedTickets()
     }
-  }, [staff, filter, categoryFilter, activeTab])
+  }, [staff, filter, categoryFilter, activeTab, myTicketsOnly])
 
   // Debounce para busca - só busca após 500ms sem digitar
   useEffect(() => {
@@ -124,7 +125,7 @@ export default function AdminDashboardPage() {
         clearInterval(refreshIntervalRef.current)
       }
     }
-  }, [staff, filter, categoryFilter, activeTab])
+  }, [staff, filter, categoryFilter, activeTab, myTicketsOnly])
 
   const checkAuth = async () => {
     try {
@@ -165,6 +166,7 @@ export default function AdminDashboardPage() {
       if (filter !== 'all') params.append('status', filter)
       if (categoryFilter !== 'all') params.append('category', categoryFilter)
       if (searchQuery.trim()) params.append('search', searchQuery.trim())
+      if (myTicketsOnly) params.append('myTickets', 'true')
       if (params.toString()) url += `?${params.toString()}`
 
       const res = await fetch(url)
@@ -474,7 +476,7 @@ export default function AdminDashboardPage() {
                     key={status}
                     onClick={() => setFilter(status)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      filter === status
+                      filter === status && !myTicketsOnly
                         ? 'bg-primary text-background'
                         : 'bg-card border border-border hover:border-primary'
                     }`}
@@ -484,6 +486,19 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             )}
+
+            {/* Filtro Meus Atendimentos */}
+            <button
+              onClick={() => setMyTicketsOnly(!myTicketsOnly)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                myTicketsOnly
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-card border border-border hover:border-purple-500'
+              }`}
+              title="Mostrar apenas tickets em que você interagiu"
+            >
+              👤 Meus Atendimentos
+            </button>
 
             {/* Filtro de Categoria */}
             <select

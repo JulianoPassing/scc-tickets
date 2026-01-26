@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as TicketStatus | null
     const category = searchParams.get('category')
     const search = searchParams.get('search')
+    const myTickets = searchParams.get('myTickets') === 'true'
 
     // Construir condições de busca
     const searchConditions = search
@@ -42,6 +43,14 @@ export async function GET(request: NextRequest) {
         ...(status && { status }),
         ...(category && { category: category as any }),
         ...searchConditions,
+        // Filtrar apenas tickets onde o staff logado enviou mensagem
+        ...(myTickets && {
+          messages: {
+            some: {
+              staffId: session.staffId,
+            },
+          },
+        }),
       },
       select: {
         id: true,
