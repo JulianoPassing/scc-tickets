@@ -28,11 +28,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: { name: true, role: true },
         },
         messages: {
-          where: {
-            // Usuário não vê mensagens exclusivas da staff (staffOnly: true)
-            // Mostra mensagens públicas (false) ou sem definição
-            NOT: { staffOnly: true },
-          },
           include: {
             user: {
               select: { username: true, displayName: true, avatar: true },

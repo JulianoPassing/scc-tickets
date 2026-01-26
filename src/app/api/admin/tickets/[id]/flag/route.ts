@@ -98,24 +98,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       createdFlags.push(flag)
     }
 
-    // Mensagem para o usuário (genérica, sem detalhes)
+    // Mensagem de sistema no ticket (genérica, sem expor detalhes internos para o usuário)
     await prisma.message.create({
       data: {
         ticketId: id,
         content: `🚩 Este ticket foi sinalizado para análise pela equipe.`,
         isSystemMessage: true,
-        staffOnly: false,
-      },
-    })
-
-    // Mensagem para a staff (com detalhes completos)
-    const roleNames = filteredRoles.map((r: string) => ROLE_LABELS[r] || r).join(', ')
-    await prisma.message.create({
-      data: {
-        ticketId: id,
-        content: `🚩 ${session.name} sinalizou este ticket para: ${roleNames}${message ? ` - "${message}"` : ''}`,
-        isSystemMessage: true,
-        staffOnly: true,
       },
     })
 
