@@ -28,6 +28,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: { name: true, role: true },
         },
         messages: {
+          where: {
+            staffOnly: false, // Não mostrar mensagens exclusivas da staff
+          },
           include: {
             user: {
               select: { username: true, displayName: true, avatar: true },
