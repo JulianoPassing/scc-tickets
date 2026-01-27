@@ -144,6 +144,8 @@ export default function AdminTicketPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const shouldAutoScrollRef = useRef(true)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastMessageIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -153,7 +155,17 @@ export default function AdminTicketPage() {
     if (staff && ticketId) {
       fetchTicket()
       fetchFlags()
-      // Auto-refresh removido - apenas no dashboard
+      
+      // Auto-refresh do chat a cada 10 segundos
+      refreshIntervalRef.current = setInterval(() => {
+        fetchMessagesOnly()
+      }, 10000)
+      
+      return () => {
+        if (refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current)
+        }
+      }
     }
   }, [staff, ticketId])
 
@@ -249,10 +261,64 @@ export default function AdminTicketPage() {
       }
       const data = await res.json()
       setTicket(data.ticket)
+      // Guardar o ID da última mensagem
+      if (data.ticket?.messages?.length > 0) {
+        lastMessageIdRef.current = data.ticket.messages[data.ticket.messages.length - 1].id
+      }
     } catch (error) {
       console.error('Erro ao carregar ticket:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Busca apenas as mensagens sem afetar o scroll
+  const fetchMessagesOnly = async () => {
+    if (!ticket) return
+    
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}`)
+      if (!res.ok) return
+      
+      const data = await res.json()
+      const newMessages = data.ticket?.messages || []
+      
+      // Verifica se há novas mensagens
+      const lastNewMessageId = newMessages.length > 0 ? newMessages[newMessages.length - 1].id : null
+      const hasNewMessages = lastNewMessageId !== lastMessageIdRef.current
+      
+      if (hasNewMessages) {
+        // Guardar posição do scroll antes de atualizar
+        const container = messagesContainerRef.current
+        const scrollPosition = container?.scrollTop || 0
+        const scrollHeight = container?.scrollHeight || 0
+        
+        // Atualizar apenas as mensagens
+        setTicket(prev => prev ? { ...prev, messages: newMessages, status: data.ticket.status } : null)
+        
+        // Atualizar referência da última mensagem
+        lastMessageIdRef.current = lastNewMessageId
+        
+        // Restaurar posição do scroll após o render
+        // Se o usuário estava no final, rolar para ver a nova mensagem
+        // Se não, manter a posição atual
+        setTimeout(() => {
+          if (container) {
+            const wasAtBottom = scrollHeight - scrollPosition - container.clientHeight < 100
+            if (wasAtBottom) {
+              // Estava no final, rolar suavemente para a nova mensagem
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+            } else {
+              // Manter a posição relativa ao conteúdo anterior
+              const newScrollHeight = container.scrollHeight
+              const heightDiff = newScrollHeight - scrollHeight
+              container.scrollTop = scrollPosition + heightDiff
+            }
+          }
+        }, 50)
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar mensagens:', error)
     }
   }
 
@@ -420,6 +486,8 @@ export default function AdminTicketPage() {
       if (res.ok) {
         setMessage('')
         setPendingImages([])
+        // Forçar scroll para o final ao enviar mensagem
+        shouldAutoScrollRef.current = true
         fetchTicket()
       }
     } catch (error) {

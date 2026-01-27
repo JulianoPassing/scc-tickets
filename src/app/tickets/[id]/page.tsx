@@ -79,8 +79,11 @@ export default function TicketChatPage() {
   const [sending, setSending] = useState(false)
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const lastMessageIdRef = useRef<string | null>(null)
+  const shouldScrollToBottomRef = useRef(true)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -91,14 +94,32 @@ export default function TicketChatPage() {
   useEffect(() => {
     if (session && ticketId) {
       fetchTicket()
-      const interval = setInterval(fetchTicket, 10000)
+      const interval = setInterval(fetchMessagesOnly, 10000)
       return () => clearInterval(interval)
     }
   }, [session, ticketId])
 
+  // Só faz scroll automático se o usuário estiver perto do final ou acabou de enviar mensagem
   useEffect(() => {
-    scrollToBottom()
+    if (shouldScrollToBottomRef.current) {
+      scrollToBottom()
+    }
   }, [ticket?.messages])
+
+  // Detectar se o usuário está perto do final do scroll
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+      shouldScrollToBottomRef.current = isNearBottom
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Listener para colar imagens
   useEffect(() => {
@@ -157,10 +178,63 @@ export default function TicketChatPage() {
       const data = await res.json()
       setTicket(data.ticket)
       setIsFlagged(data.isFlagged || false)
+      // Guardar o ID da última mensagem
+      if (data.ticket?.messages?.length > 0) {
+        lastMessageIdRef.current = data.ticket.messages[data.ticket.messages.length - 1].id
+      }
     } catch (error) {
       console.error('Erro ao carregar ticket:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Busca apenas as mensagens sem afetar o scroll
+  const fetchMessagesOnly = async () => {
+    if (!ticket) return
+    
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}`)
+      if (!res.ok) return
+      
+      const data = await res.json()
+      const newMessages = data.ticket?.messages || []
+      
+      // Verifica se há novas mensagens
+      const lastNewMessageId = newMessages.length > 0 ? newMessages[newMessages.length - 1].id : null
+      const hasNewMessages = lastNewMessageId !== lastMessageIdRef.current
+      
+      if (hasNewMessages) {
+        // Guardar posição do scroll antes de atualizar
+        const container = messagesContainerRef.current
+        const scrollPosition = container?.scrollTop || 0
+        const scrollHeight = container?.scrollHeight || 0
+        const wasAtBottom = container ? (scrollHeight - scrollPosition - container.clientHeight < 100) : true
+        
+        // Atualizar o ticket (mensagens e status)
+        setTicket(prev => prev ? { ...prev, messages: newMessages, status: data.ticket.status } : null)
+        setIsFlagged(data.isFlagged || false)
+        
+        // Atualizar referência da última mensagem
+        lastMessageIdRef.current = lastNewMessageId
+        
+        // Se estava no final, rolar para ver a nova mensagem
+        // Se não, manter a posição atual
+        if (wasAtBottom) {
+          shouldScrollToBottomRef.current = true
+        } else {
+          // Restaurar posição após o render
+          setTimeout(() => {
+            if (container) {
+              const newScrollHeight = container.scrollHeight
+              const heightDiff = newScrollHeight - scrollHeight
+              container.scrollTop = scrollPosition + heightDiff
+            }
+          }, 50)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar mensagens:', error)
     }
   }
 
@@ -224,6 +298,8 @@ export default function TicketChatPage() {
       if (res.ok) {
         setMessage('')
         setPendingImages([])
+        // Forçar scroll para o final ao enviar mensagem
+        shouldScrollToBottomRef.current = true
         fetchTicket()
       }
     } catch (error) {
@@ -297,7 +373,10 @@ export default function TicketChatPage() {
 
           {/* Chat */}
           <div className="card flex-1 flex flex-col min-h-[400px]">
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]">
+            <div 
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]"
+            >
               {ticket.messages.map((msg) => (
                 <div
                   key={msg.id}
