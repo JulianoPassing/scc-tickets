@@ -274,13 +274,13 @@ export default function AdminTicketPage() {
 
   // Busca apenas as mensagens sem afetar o scroll
   const fetchMessagesOnly = async () => {
-    if (!ticket) return
-    
     try {
       const res = await fetch(`/api/admin/tickets/${ticketId}`)
       if (!res.ok) return
       
       const data = await res.json()
+      if (!data.ticket) return
+      
       const newMessages = data.ticket?.messages || []
       
       // Verifica se há novas mensagens
@@ -292,9 +292,10 @@ export default function AdminTicketPage() {
         const container = messagesContainerRef.current
         const scrollPosition = container?.scrollTop || 0
         const scrollHeight = container?.scrollHeight || 0
+        const wasAtBottom = container ? (scrollHeight - scrollPosition - container.clientHeight < 100) : true
         
-        // Atualizar apenas as mensagens
-        setTicket(prev => prev ? { ...prev, messages: newMessages, status: data.ticket.status } : null)
+        // Atualizar apenas as mensagens e status
+        setTicket(prev => prev ? { ...prev, messages: newMessages, status: data.ticket.status } : data.ticket)
         
         // Atualizar referência da última mensagem
         lastMessageIdRef.current = lastNewMessageId
@@ -304,7 +305,6 @@ export default function AdminTicketPage() {
         // Se não, manter a posição atual
         setTimeout(() => {
           if (container) {
-            const wasAtBottom = scrollHeight - scrollPosition - container.clientHeight < 100
             if (wasAtBottom) {
               // Estava no final, rolar suavemente para a nova mensagem
               messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

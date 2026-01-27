@@ -191,13 +191,13 @@ export default function TicketChatPage() {
 
   // Busca apenas as mensagens sem afetar o scroll
   const fetchMessagesOnly = async () => {
-    if (!ticket) return
-    
     try {
       const res = await fetch(`/api/tickets/${ticketId}`)
       if (!res.ok) return
       
       const data = await res.json()
+      if (!data.ticket) return
+      
       const newMessages = data.ticket?.messages || []
       
       // Verifica se há novas mensagens
@@ -212,7 +212,7 @@ export default function TicketChatPage() {
         const wasAtBottom = container ? (scrollHeight - scrollPosition - container.clientHeight < 100) : true
         
         // Atualizar o ticket (mensagens e status)
-        setTicket(prev => prev ? { ...prev, messages: newMessages, status: data.ticket.status } : null)
+        setTicket(prev => prev ? { ...prev, messages: newMessages, status: data.ticket.status } : data.ticket)
         setIsFlagged(data.isFlagged || false)
         
         // Atualizar referência da última mensagem
