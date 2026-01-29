@@ -5,6 +5,8 @@ import { getAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 
 // Upload de arquivos (para usuários e admins) - Usa ImgBB
+// NOTA: Vercel tem limite de 4.5MB para body de requests
+// Para arquivos maiores, use upload direto do cliente via /api/upload/key
 export async function POST(request: NextRequest) {
   try {
     // Verificar autenticação (usuário OU admin)

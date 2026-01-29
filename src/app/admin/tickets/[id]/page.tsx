@@ -430,18 +430,49 @@ export default function AdminTicketPage() {
   }
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    const formData = new FormData()
-    formData.append('file', file)
-
     try {
-      const res = await fetch('/api/upload', {
+      // Validar tamanho (max 32MB - limite do ImgBB)
+      const maxSize = 32 * 1024 * 1024
+      if (file.size > maxSize) {
+        console.error('Arquivo muito grande (máx 32MB)')
+        return null
+      }
+
+      // Obter chave do ImgBB
+      const keyRes = await fetch('/api/upload/key')
+      if (!keyRes.ok) {
+        console.error('Erro ao obter chave de upload')
+        return null
+      }
+      const { key } = await keyRes.json()
+
+      // Converter para base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          // Remove o prefixo "data:image/xxx;base64,"
+          const base64Data = result.split(',')[1]
+          resolve(base64Data)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // Upload direto para ImgBB (evita limite de 4.5MB da Vercel)
+      const formData = new FormData()
+      formData.append('key', key)
+      formData.append('image', base64)
+      formData.append('name', file.name.split('.')[0])
+
+      const res = await fetch('https://api.imgbb.com/1/upload', {
         method: 'POST',
         body: formData,
       })
 
       if (res.ok) {
         const data = await res.json()
-        return data.url
+        return data.data?.url || data.data?.display_url
       }
     } catch (error) {
       console.error('Erro ao fazer upload:', error)
